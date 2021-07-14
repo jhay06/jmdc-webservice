@@ -1,0 +1,167 @@
+"""types"""
+
+
+type Patient{
+	patient_name:String
+	doctor_username:String
+	contact_number:String
+	email_address:String
+	branch:String
+	date_of_appointment:String
+}
+
+type UserInformation{
+    username:String
+    employee_no:String
+    first_name:String
+    middle_name:String
+    last_name:String
+    suffix:String
+    contact_number:String
+    email_address:String
+    profile_id:Int
+    affiliate_level_id:Int
+    date_registered:String
+
+}
+
+
+"""end of types"""
+
+
+
+#input_data#
+input ValidatorInput{
+    validate:[String!]!
+}
+
+input LoginInput{
+	username:String!
+	password:String!
+}
+input TwoFactorInput{
+	username:String!
+	authentication:String!
+}
+
+input RegistrationInput{
+	username:String!
+	employee_no:String
+	first_name:String!
+	middle_name:String
+	last_name:String!
+	suffix:String
+	is_accreditation:Boolean!
+	affiliate_level:Int
+	contact_number:String
+	email_address:String,
+	password:String
+}
+
+input PatientAppointmentInput{
+	patient_name:String!
+	doctor_username:String!
+	contact_number:String
+	email_address:String
+	branch:String
+	date_of_appointment:String
+}
+
+
+input AppointmentListInput{
+	doctor_username:String!
+	filtered_month:Int
+	filtered_day:Int
+	filtered_year:Int
+	
+}
+
+
+input GetUserInfoInput{
+    profile_id:Int!,
+    affiliate_level:Int
+
+}
+#end of inputs#
+
+"""response"""
+type UserInfoListResponse{
+    users:[UserInformation]
+}
+type BaseUserListResponse{
+    type:String!
+    message:String
+    data:UserInfoListResponse
+}
+
+type LoginResponse{
+	login_hash:String
+	username:String
+}
+
+
+type BaseLoginResponse{
+	type:String!
+	message:String
+	data:LoginResponse
+}
+type RegistrationResponse{
+	registration_date:String	
+	username:String
+
+}
+type BaseRegistrationResponse{
+	type:String!
+	message:String
+	data:RegistrationResponse
+
+}
+type TwoFactorResponse{
+	login_date:String	
+	token:String
+}
+
+type BaseTwoFactorResponse{
+	type:String!
+	message:String
+	data:TwoFactorResponse
+}
+
+type PatientAppointmentResponse{
+	appointment_code:String
+	date_process:String
+}
+type BasePatientAppointmentResponse{
+	type:String!
+	message:String
+	data:PatientAppointmentResponse
+}
+
+type AppointmentListResponse{
+	patients:[Patient]
+	token:String
+}
+type BaseAppointmentListResponse{
+	type:String!
+	message:String
+	data:AppointmentListResponse
+	
+}
+type BaseValidatorResponse{
+    type:String!
+    message:String
+    data:String
+}
+"""end of response"""
+
+
+type Query{
+	get_validator(input:ValidatorInput!):BaseValidatorResponse
+    get_user_list(input:GetUserInfoInput!):BaseUserListResponse
+}
+type Mutation{
+	login(input:LoginInput!):BaseLoginResponse
+	register(input:RegistrationInput!):BaseRegistrationResponse
+	two_factor(input:TwoFactorInput):BaseTwoFactorResponse
+
+}
