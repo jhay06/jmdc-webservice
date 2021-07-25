@@ -39,11 +39,7 @@ class Login:
                 pass_string = input['username'] + ';' + input['password']
                 password_md5 = hashlib.md5(pass_string.encode('utf-8')).hexdigest()
                 cursor.callproc('usp_GetLoginInformation', args=(input['username'], password_md5))
-<<<<<<< HEAD
 
-=======
-                
->>>>>>> 0afa3da9b2f7c3f14632007fb8af271923e3ef29
                 login_info: LoginInformation = None
                 for result in cursor.stored_results():
                     data = JsonResult(result)

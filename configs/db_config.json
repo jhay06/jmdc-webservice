@@ -1,8 +1,8 @@
 {
-  "db_host": "192.168.254.45",
-  "db_port": 3306,
-  "user": "jhay",
-  "password": "password123",
-  "db_name": "db_JMDC"
+  "db_host": "127.0.0.1",
+  "db_port": 3307,
+  "user": "jmdc",
+  "password": "P@ssw0rd123",
+  "db_name": "db_JDMC"
 
 }
