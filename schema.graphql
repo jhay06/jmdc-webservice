@@ -22,6 +22,8 @@ type UserInformation{
     profile_id:Int
     affiliate_level_id:Int
     date_registered:String
+	is_activated:Boolean
+	is_temporary_password:Boolean
 
 }
 
@@ -58,6 +60,25 @@ input RegistrationInput{
 	password:String
 }
 
+
+input UpdateAccountInput{
+	username:String
+	new_username:String
+	first_name:String
+	middle_name:String
+	last_name:String
+	suffix:String
+	contact_no:String
+	email_address:String
+	profile_id:Int
+	affiliate_level_id:Int
+	employee_no:String
+	new_employee_no:String
+	is_activated:Boolean
+	date_registered:String
+
+}
+
 input PatientAppointmentInput{
 	patient_name:String!
 	doctor_username:String!
@@ -81,6 +102,15 @@ input GetUserInfoInput{
     profile_id:Int!,
     affiliate_level:Int
 
+}
+input GetInfoByUsernameInput{
+	username:String!
+}
+
+input ChangePasswordInput{
+	username:String!
+	new_password:String!
+	old_password:String!
 }
 #end of inputs#
 
@@ -152,16 +182,40 @@ type BaseValidatorResponse{
     message:String
     data:String
 }
+
+type UpdateAccountResponse{
+	type:String!
+	message:String
+	data:LoginResponse
+}
+
+type IsEligibleResponse{
+	type:String!
+	message:String
+}
+
+type GetUserInfoResponse{
+	type:String!
+	message:String
+	data:UserInformation
+}
+type BaseResponse{
+	type:String!
+	message:String
+}
+
 """end of response"""
 
 
 type Query{
 	get_validator(input:ValidatorInput!):BaseValidatorResponse
     get_user_list(input:GetUserInfoInput!):BaseUserListResponse
+	get_user_info(input:GetInfoByUsernameInput!):GetUserInfoResponse
+
 }
 type Mutation{
 	login(input:LoginInput!):BaseLoginResponse
 	register(input:RegistrationInput!):BaseRegistrationResponse
-	two_factor(input:TwoFactorInput):BaseTwoFactorResponse
-
+	change_password(input:ChangePasswordInput!):BaseResponse
+	update_account(input:UpdateAccountInput!):UpdateAccountResponse
 }

@@ -16,3 +16,4 @@ class QueryResolver:
 
     def get_definition(self) -> ObjectType:
         return self.__query
+

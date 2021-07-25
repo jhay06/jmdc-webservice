@@ -1,3 +1,4 @@
+from datetime import datetime
 class LoginInformation:
     def __init__(self,
                  employee_no=None,
@@ -11,6 +12,8 @@ class LoginInformation:
                  affiliate_level_id=-1,
                  date_registered=None,
                  username=None,
+                 is_activated=False,
+                 is_temporary_password=False,
                  *args, **kwargs
 
                  ):
@@ -25,3 +28,6 @@ class LoginInformation:
         self.affiliate_level_id = affiliate_level_id
         self.date_registered = date_registered
         self.username=username
+        self.is_activated=is_activated
+        self.is_temporary_password=is_temporary_password
+        self.date_login=datetime.now()

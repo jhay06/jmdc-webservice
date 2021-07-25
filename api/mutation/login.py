@@ -17,6 +17,7 @@ class Login:
     def process_login(obj, info, input):
         input_error = False
         input_error_message = None
+        has_info=False
         if input['username'] is None:
             input_error = True
             input_error_message = 'Username is required'
@@ -37,9 +38,8 @@ class Login:
                 cursor = con.get_connection().cursor()
                 pass_string = input['username'] + ';' + input['password']
                 password_md5 = hashlib.md5(pass_string.encode('utf-8')).hexdigest()
-
                 cursor.callproc('usp_GetLoginInformation', args=(input['username'], password_md5))
-                has_info = False
+
                 login_info: LoginInformation = None
                 for result in cursor.stored_results():
                     data = JsonResult(result)

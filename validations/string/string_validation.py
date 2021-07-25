@@ -16,7 +16,7 @@ class StringValidation:
         max_validate=max.is_valid(value)
         if max_validate is not None:
             return max_validate
-        if self.no_regex == False:
+        if self.no_regex == False and min.val > 0:
             pattern=self.regex['val']
             error=self.regex['error']
             x=re.findall(pattern,value)
