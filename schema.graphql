@@ -112,6 +112,21 @@ input ChangePasswordInput{
 	new_password:String!
 	old_password:String!
 }
+
+input ForgotPasswordInput{
+	email_address:String!
+}
+
+input ValidateResetKeyInput{
+	email_address:String!
+	reset_key:String!
+}
+input ChangePasswordViaForgotInput{
+	email_address:String!
+	reset_key:String!
+	new_password:String!
+	username:String!
+}
 #end of inputs#
 
 """response"""
@@ -204,6 +219,7 @@ type BaseResponse{
 	message:String
 }
 
+
 """end of response"""
 
 
@@ -214,6 +230,9 @@ type Query{
 
 }
 type Mutation{
+	change_password_via_forgot(input:ChangePasswordViaForgotInput!):BaseResponse
+	is_valid_key(input:ValidateResetKeyInput!):BaseResponse
+	forgot_password(input:ForgotPasswordInput!):BaseResponse
 	login(input:LoginInput!):BaseLoginResponse
 	register(input:RegistrationInput!):BaseRegistrationResponse
 	change_password(input:ChangePasswordInput!):BaseResponse

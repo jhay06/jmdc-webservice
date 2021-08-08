@@ -1,5 +1,5 @@
 {
-  "db_host": "127.0.0.1",
+  "db_host": "localhost",
   "db_port": 3307,
   "user": "jmdc",
   "password": "P@ssw0rd123",

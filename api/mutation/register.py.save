@@ -101,15 +101,27 @@ class Register:
                     ))
                 con.get_connection().commit()
                 if email_address is not None:
-                    f=open('assets/emails/account_registration.html',"r")
-
-                    html_part=f.read()
-                    f.close()
+                    html_part="""
+                    <pre>
+                    Hi {username},
+                        Below is the copy of your login account for JMDC,
+                        
+                            Username: {username}
+                            Password: {password}
+                        
+                        This is an auto generated email, Please don't reply
+                        
+                    Thank you!
+                    
+                    Regards,
+                    JMDC Diagnostic Center Inc.
+                    </pre>
+                    """
                     message=html_part.format(username=input['username'], password=input['password'])
                     send_mail=SendMail(subject='Copy of JMDC Password',message=message,is_html=True,
                                        from_addr='no-reply@gmail.com',to_addr=email_address,
                                        config='smtp_config.json')
-                    send_mail.send()
+                    #send_mail.send()
 
                 return BaseResponse(
                         type = 'success',

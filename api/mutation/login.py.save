@@ -1,5 +1,3 @@
-import mysql.connector
-
 from api.response.login_response import LoginResponse
 from api.response.base_response import BaseResponse
 from database.connection import (
@@ -17,7 +15,6 @@ import base64
 class Login:
     @staticmethod
     def process_login(obj, info, input):
-
         input_error = False
         input_error_message = None
         has_info=False
@@ -40,9 +37,8 @@ class Login:
                 con = DatabaseConnection(db)
                 cursor = con.get_connection().cursor()
                 pass_string = input['username'] + ';' + input['password']
-
                 password_md5 = hashlib.md5(pass_string.encode('utf-8')).hexdigest()
-
+               
                 cursor.callproc('usp_GetLoginInformation', args=(input['username'], password_md5))
                 
                 login_info: LoginInformation = None
@@ -58,13 +54,12 @@ class Login:
                     message="login successful",
                     data=login_response
                 )
-            except mysql.connector.Error as err:
+            except:
                 login_response=LoginResponse()
                 base_response=BaseResponse(
                     type ="failed",
-                    message= "Could not connect to database "+err.msg
+                    message= "Could not connect to database"
                 )
-                return base_response
             login_response.username = input['username']
             if has_info:
                 info=json.dumps(login_info.__dict__,default=json_util.default);

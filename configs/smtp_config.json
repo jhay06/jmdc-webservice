@@ -1,6 +1,6 @@
 {
-  "smtp_username": "yourgmail@gmail.com",
-  "smtp_password": "",
+  "smtp_username": "jrockhackerz@gmail.com",
+  "smtp_password": "hack42106",
   "smtp_server": "smtp.gmail.com",
   "smtp_port_tls": 587,
   "smtp_port_ssl":465,

@@ -25,7 +25,7 @@ def graphql_ui():
 	return PLAYGROUND_HTML,200
 @app.route('/graphql',methods=['POST'])
 def graphql_server():
-	print(request,flush=True)
+	#print(request,flush=True)
 	data=request.get_json()
 	success,result=graphql_sync(
 		schema.get_schema(),
