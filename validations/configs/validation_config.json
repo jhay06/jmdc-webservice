@@ -1,0 +1,269 @@
+{
+    "username":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":6,
+                "error":"username must have atleast 6 characters long"
+            },
+            "max":{
+                "val":20,
+                "error":"username must not be larger than 20 characters long"
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9 ._]+$",
+                "error":"username must not contain other characters except for a-z , 0-9 ,periods and underscores"
+            }
+        }
+    },
+    "password":{
+        "type":"password",
+        "config":{
+            "min":{
+                "val":8,
+                "error":"password must have atleast 8 characters long"
+            },
+            "max":{
+                "val":30,
+                "error":"password must not be larger than 30 characters long"
+            },
+            "capital_minimum":{
+                "val":1,
+                "error":"password must contain atleast 1 capital letter"
+
+            },
+            "special_character_minimum":{
+                "val":1,
+                "error":"password must contain atleast 1 special character"
+            },
+            "no_spaces":{
+                "error":"password should not contain white spaces"
+            },
+            "numbers_minimum":{
+                "val":1,
+                "error":"password must contain atleast 1 numerical character"
+            },
+            "small_letter_minimum":{
+                "val":1,
+                "error":"password must contain atleast 1 small letter"
+            }
+
+
+        }
+    },
+    "first_name":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":1,
+                "error":"firstname must have alteast 1 character"
+            },
+            "max":{
+                "val":30,
+                "error":"firstname must not be larger than 30 characters long"
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9 .,_']+$",
+                "error":"Invalid firstname"
+            }
+        }
+    },
+    "middle_name":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":0,
+                "error":"middle name must have alteast 0 character"
+            },
+            "max":{
+                "val":30,
+                "error":"middle name must not be larger than 30 characters long"
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9 .,_']+$",
+                "error":"Invalid middle name"
+            }
+        }
+    },
+    "last_name":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":1,
+                "error":"lastname must have atleast 1 character"
+            },
+            "max":{
+                "val":30,
+                "error":"lastname must not be larger than 30 characters long"
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9 .,_']+$",
+                "error":"Invalid lastname"
+            }
+        }
+    },
+    "suffix":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":0,
+                "error":"suffix must have alteast 0 character"
+            },
+            "max":{
+                "val":10,
+                "error":"suffix must not be larger than 10 characters long"
+
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9 .,_']+$",
+                "error":"Invalid suffix"
+            }
+        }
+    },
+    "birthdate_doctor":{
+        "type":"age",
+        "config":{
+            "min":{
+                "val":18,
+                "error":"Minimum 18 of age is required to use the service"
+            },
+            "max":{
+                "val":70,
+                "error":"Age must not be larger than 70 to use the service"
+            },
+            "date_format":{
+                "val":"%m/%d/%Y",
+                "error":"birthdate format must be MM/dd/yyyy"
+            }
+        }
+    },
+    "birthdate_patient":{
+        "type":"age",
+        "config":{
+            "min":{
+                "val":1,
+                "error":"Age of the patient must be 1 atleast"
+            },
+            "max":{
+                "val":100,
+                "error":"Age of the patient must not be larger than 100"
+            },
+            "date_format":{
+                "val":"%m/%d/%Y",
+                "error":"birthdate format must be \"MM/dd/yyyy\""
+            }
+
+        }
+    },
+    "home_address":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":10,
+                "error":"address must have alteast 10 character"
+            },
+            "max":{
+                "val":150,
+                "error":"address must not be larger than 150 characters long"
+            },
+            "no_regex":true
+            
+        }
+    },
+    "email_address":{
+        "type":"email",
+        "config":{
+            "format":{
+                "error":"Invalid email address format"
+            }
+        }
+    },
+    "contact_number":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":8,
+                "error":"contact number must have atleast 8 digits long"
+            },
+            "max":{
+                "val":11,
+                "error":"contact number must not be larger than 11 digits long"
+            },
+            "regex":{
+                "val":"^[0-9]+$",
+                "error":"contact number must be in number format"
+            }      
+        }
+    },
+    "mobile_number":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":11,
+                "error":"mobile number must be 11 digits long"
+            },
+            "max":{
+                "val":11,
+                "error":"mobile number must be 11 digits long"
+            },
+            "regex":{
+                "val":"^[0-9]+$",
+                "error":"mobile number must be in number format"
+            }  
+        }
+        
+    
+    },
+    "patient_name":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":1,
+                "error":"patient name must have atleast 1 characters long"
+            },
+            "max":{
+                "val":80,
+                "error":"patient name must not be larger than 80 characters long"
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9 ._']+$",
+                "error":"invalid patient name"
+            }
+        }
+    },
+    "employee_no":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":6,
+                "error":"employee number must have atleast 6 characters long"
+            },
+            "max":{
+                "val":30,
+                "error":"employee number must not be larger than 30 characters long"
+            },
+            "regex":{
+                "val":"^[-a-zA-Z0-9]+$",
+                "error":"employee number invalid"
+            }
+        }
+    },
+    "gender":{
+        "type":"string",
+        "config":{
+            "min":{
+                "val":0
+            },
+            "max":{
+                "val":6,
+                "error":"gender is invalid"
+            },
+            "regex":{
+                "val":"^(Male|Female|male|female)+$",
+                "error":"gender must be either male or female only"
+            
+            }
+        }
+    }
+    
+}
