@@ -2,7 +2,7 @@ from ariadne import ObjectType
 from api.mutation.login import Login
 from api.mutation.register import Register
 from api.mutation.account import Account
-
+from api.mutation.appointment import Appointment
 
 class MutationResolver:
     def __init__(self):
@@ -37,6 +37,7 @@ class MutationResolver:
         self.validate_key()
         self.forgot_password()
         self.change_password_forgot()
+        Appointment.resolve_all(self.__query)
 
     def get_definition(self) -> ObjectType:
         return self.__query

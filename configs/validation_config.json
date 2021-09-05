@@ -222,8 +222,8 @@
                 "error":"patient name must have atleast 1 characters long"
             },
             "max":{
-                "val":80,
-                "error":"patient name must not be larger than 80 characters long"
+                "val":150,
+                "error":"patient name must not be larger than 150 characters long"
             },
             "regex":{
                 "val":"^[a-zA-Z0-9 ._']+$",

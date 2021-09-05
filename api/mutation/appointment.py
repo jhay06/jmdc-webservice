@@ -136,14 +136,88 @@ class Appointment:
 
     @staticmethod
     def update_appointment(obj, info, input):
-        pass
+        reference_code=input['reference_code']
+        patient_name=input['patient_name']
+        patient_contact_no= input['patient_contact_no']
+        email_address= input['email_address']
+        branch_code=input['branch_code']
+        branch_name=input['branch_name']
+        start_timeslot=int(input['start_timeslot'])
+        end_timeslot= int(input['end_timeslot'])
+        modified_by= input['modified_by']
+        appointment_date=input['appointment_date']
+        validator=BaseValidation()
+        patient_name_validate=validator.validate('patient_name',patient_name)
+        patient_contact_validate=validator.validate('contact_number',patient_contact_no)
+        email_address_validate=validator.validate('email_address',email_address)
+        validated=[patient_name_validate, patient_contact_validate, email_address_validate]
+        for x in validated:
+            if x is not None:
+                return BaseResponse(
+                    type='failed',
+                    message=x
+                )
+
+
+        args=[
+            reference_code,
+            patient_name,
+            patient_contact_no,
+            email_address,
+            branch_code,
+            branch_name,
+            appointment_date,
+            start_timeslot,
+            end_timeslot,
+            modified_by
+        ]
+        stored_proc='usp_UpdateAppointment'
+        try:
+            db=Database(db_config_file='db_config.json')
+            db_con=DatabaseConnection(db)
+            cursor=db_con.get_connection().cursor()
+            cursor.callproc(stored_proc,args)
+            db_con.get_connection().commit()
+
+            return BaseResponse(
+                type='success',
+                message='Successfully updated'
+            )
+
+        except mysql.connector.Error as err:
+            return BaseResponse(
+                type='error',
+                message=err.msg
+            )
+
 
     @staticmethod
     def cancel_appointment(obj, info, input):
-        pass
+        reference_codes=input['reference_codes']
+        cancelled_by=input['cancelled_by']
+        try:
+            db=Database(db_config_file='db_config.json')
+            db_con=DatabaseConnection(db)
+            cursor=db_con.get_connection().cursor()
+            for x in reference_codes:
+                args=[x,cancelled_by]
+                cursor.callproc('usp_CancelAppointment',args)
+            db_con.get_connection().commit()
+            return BaseResponse(
+                type='success',
+                message='Successfully cancelled'
+            )
+
+        except mysql.connector.Error as err:
+            return BaseResponse(
+                type='error',
+                message=err.msg
+            )
 
     @staticmethod
     def resolve_all(query: ObjectType):
         query.set_field('generate_appointment_reference_code',Appointment.generate_reference_code)
         query.set_field('add_appointment',Appointment.add_appointment)
+        query.set_field('cancel_appointment',Appointment.cancel_appointment)
+        query.set_field('update_appointment',Appointment.update_appointment)
 

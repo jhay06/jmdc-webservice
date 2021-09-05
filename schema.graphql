@@ -1,6 +1,5 @@
 """types"""
 
-
 type Patient{
 	patient_name:String
 	doctor_username:String
@@ -27,15 +26,75 @@ type UserInformation{
 
 }
 
+type Branch{
+	branch_id:ID
+	branch_code:String
+	branch_name:String
+	branch_address:String
+	open_time:String
+	close_time:String
+
+
+}
+
+type Appointment{
+	appointment_id:ID
+	patient_name:String
+	patient_contact_no:String
+	email_address:String
+	branch_code:String
+	branch_name:String
+	appointment_date:String
+	start_timeslot:String
+	end_timeslot:String
+	appoint_by:String
+	is_cancelled:Boolean
+	cancelled_date:String
+	cancelled_by:String
+	reference_code:String
+
+}
 
 """end of types"""
 
 
 
 #input_data#
+
+input CancelAppointmentInput{
+	reference_codes:[String!]!
+	cancelled_by:String!
+}
+
 input ValidatorInput{
     validate:[String!]!
 }
+
+input AddAppointmentInput{
+	patient_name:String!
+	patient_contact_no:String!
+	email_address:String!
+	branch_code:String!
+	branch_name:String!
+	appointment_date:String!
+	start_timeslot:String!
+	end_timeslot:String!
+	appoint_by:String
+
+}
+input UpdateAppointmentInput{
+	reference_code:String!
+	patient_name:String!
+	patient_contact_no:String!
+	email_address:String!
+	branch_code:String!
+	branch_name:String!
+	appointment_date:String!
+	start_timeslot:String!
+	end_timeslot:String!
+	modified_by:String!
+}
+
 
 input LoginInput{
 	username:String!
@@ -126,6 +185,24 @@ input ChangePasswordViaForgotInput{
 	reset_key:String!
 	new_password:String!
 	username:String!
+}
+
+input GetAppointmentListByUsernameInput{
+	username:String!
+	branch_code:String
+}
+input GetCancelleAppointmentListByUsernameInput{
+	username:String!
+
+}
+input GetActiveAppointmentByRangeInput{
+	username:String!
+	branch_code:String!
+	from_range:String!
+	to_range:String!
+}
+input GetAppointmentInformationInput{
+	appointment_id:Int
 }
 #end of inputs#
 
@@ -219,6 +296,35 @@ type BaseResponse{
 	message:String
 }
 
+type GetBranchListResponse{
+	type:String!
+	message:String
+	data:[Branch]
+}
+type GetActiveAppointmentListResponse{
+	type:String!
+	message:String
+	data:[Appointment]
+}
+type GetCancelledAppointmentListResponse{
+	type:String!
+	message:String
+	data:[Appointment]
+}
+type GetAppointmentInfoResponse{
+	type:String!
+	message:String
+	data:Appointment
+}
+
+type AppointmentReferenceCode{
+	code:String!
+}
+type GenerateAppointmentReferenceResponse{
+	type:String!
+	message:String
+	data:AppointmentReferenceCode
+}
 
 """end of response"""
 
@@ -227,7 +333,13 @@ type Query{
 	get_validator(input:ValidatorInput!):BaseValidatorResponse
     get_user_list(input:GetUserInfoInput!):BaseUserListResponse
 	get_user_info(input:GetInfoByUsernameInput!):GetUserInfoResponse
-
+	get_branches:GetBranchListResponse
+	get_active_appointment_list:GetActiveAppointmentListResponse
+	get_cancelled_appointment_list:GetCancelledAppointmentListResponse
+	get_appointment_info(input:GetAppointmentInformationInput!):GetAppointmentInfoResponse
+	get_active_appointment_by_username(input:GetAppointmentListByUsernameInput!):GetActiveAppointmentListResponse
+	get_active_appointment_by_range(input:GetActiveAppointmentByRangeInput!):GetActiveAppointmentListResponse
+	get_cancelled_appointment_by_username(input:GetAppointmentListByUsernameInput!):GetCancelledAppointmentListResponse
 }
 type Mutation{
 	change_password_via_forgot(input:ChangePasswordViaForgotInput!):BaseResponse
@@ -237,4 +349,8 @@ type Mutation{
 	register(input:RegistrationInput!):BaseRegistrationResponse
 	change_password(input:ChangePasswordInput!):BaseResponse
 	update_account(input:UpdateAccountInput!):UpdateAccountResponse
+	add_appointment(input:AddAppointmentInput!):BaseResponse
+	generate_appointment_reference_code:GenerateAppointmentReferenceResponse
+	cancel_appointment(input:CancelAppointmentInput!):BaseResponse
+	update_appointment(input:UpdateAppointmentInput!):BaseResponse
 }

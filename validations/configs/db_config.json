@@ -1,8 +1,0 @@
-{
-  "db_host": "localhost",
-  "db_port": 3307,
-  "user": "jmdc",
-  "password": "P@ssw0rd123",
-  "db_name": "db_JDMC"
-
-}

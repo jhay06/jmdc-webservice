@@ -20,18 +20,18 @@ class Login:
 
         input_error = False
         input_error_message = None
-        has_info=False
+        has_info = False
         if input['username'] is None:
             input_error = True
             input_error_message = 'Username is required'
         elif len(input['username'].strip()) == 0:
-            input_error= True
+            input_error = True
             input_error_message = 'Username is required'
         elif input['password'] is None:
             input_error = True
             input_error_message = "Password is required"
         elif len(input['password'].strip()) == 0:
-            input_error=True
+            input_error = True
             input_error_message = 'Password is required'
 
         if not input_error:
@@ -44,7 +44,7 @@ class Login:
                 password_md5 = hashlib.md5(pass_string.encode('utf-8')).hexdigest()
 
                 cursor.callproc('usp_GetLoginInformation', args=(input['username'], password_md5))
-                
+
                 login_info: LoginInformation = None
                 for result in cursor.stored_results():
                     data = JsonResult(result)
@@ -59,20 +59,19 @@ class Login:
                     data=login_response
                 )
             except mysql.connector.Error as err:
-                login_response=LoginResponse()
-                base_response=BaseResponse(
-                    type ="failed",
-                    message= "Could not connect to database "+err.msg
+                login_response = LoginResponse()
+                base_response = BaseResponse(
+                    type="failed",
+                    message="Could not connect to database " + err.msg
                 )
                 return base_response
             login_response.username = input['username']
             if has_info:
-                info=json.dumps(login_info.__dict__,default=json_util.default);
-                hash= base64.b64encode(info.encode('utf-8')).decode('utf-8')
+                info = json.dumps(login_info.__dict__, default=json_util.default);
+                hash = base64.b64encode(info.encode('utf-8')).decode('utf-8')
 
                 base_response.type = 'success'
-                login_response.login_hash =hash
-
+                login_response.login_hash = hash
 
             else:
                 base_response.type = 'failed'
@@ -80,7 +79,7 @@ class Login:
             return base_response
         else:
             return BaseResponse(
-                type= "failed",
-                message= input_error_message
+                type="failed",
+                message=input_error_message
 
             )

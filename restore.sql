@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Aug 29, 2021 at 09:51 AM
+-- Generation Time: Sep 05, 2021 at 04:11 AM
 -- Server version: 10.5.11-MariaDB-1:10.5.11+maria~focal
 -- PHP Version: 8.0.9
 
@@ -20,7 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `db_JDMC`
 --
-DROP DATABASE IF EXISTS `db_JDMC`;
 CREATE DATABASE IF NOT EXISTS `db_JDMC` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `db_JDMC`;
 
@@ -99,8 +98,12 @@ DECLARE insert_id bigint default 0;
 SELECT COUNT(*) INTO exist
 FROM tbl_Appointment
 WHERE fld_DateOfAppointment = appointment_date
-AND fld_StartTimeSlot >=start_timeslot
-AND fld_EndTimeSlot <= end_timeslot
+AND (
+            
+                ( start_timeslot <= fld_StartTimeSlot  AND end_timeslot >= fld_EndTimeSlot)
+			   OR (start_timeslot >= fld_StartTimeSlot AND end_timeSlot <= fld_EndTimeSlot)
+               )
+AND (fld_IsCancelled = 0 OR fld_IsCancelled IS NULL)
 ANd fld_IsDeleted=0
 AND fld_AppointBy = appointby;
 
@@ -147,13 +150,26 @@ if exist = 0
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_CancelAppointment`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_CancelAppointment` (`appointment_id` BIGINT, `cancelled_by` VARCHAR(30))  BEGIN
-	UPDATE tbl_Appointment
-    SET fld_IsCancelled=1,
-		fld_DateCancelled=current_timestamp(),
-        fld_CancelledBy= cancelled_by
-    WHERE fld_AppointmentId = appointment_id;
-
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_CancelAppointment` (`reference_code` VARCHAR(30), `cancelled_by` VARCHAR(30))  BEGIN
+	DECLARE appointment_id BIGINT default 0;
+    DECLARE message varchar(150) default null;
+	SELECT fld_AppointmentId INTO appointment_id
+    FROM tbl_AppointmentReference
+    WHERE fld_ReferenceCode=reference_code
+    AND fld_IsDeleted=0;
+    
+    if appointment_id > 0
+		then
+        	UPDATE tbl_Appointment
+			SET fld_IsCancelled=1,
+			fld_DateCancelled=current_timestamp(),
+			fld_CancelledBy= cancelled_by
+			WHERE fld_AppointmentId = appointment_id;
+	else
+		SET message=CONCAT('Reference code: ',reference_code,' is not exist');
+        
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = message;
+	end if;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_ChangePassword`$$
@@ -649,22 +665,52 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(2
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_UpdateAppointment`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAppointment` (`appointment_id` BIGINT, `patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `modified_by` VARCHAR(30))  BEGIN
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAppointment` (`reference_code` VARCHAR(30), `patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `modified_by` VARCHAR(30))  BEGIN
+DECLARE appointment_id BIGINT DEFAULT 0;
+DECLARE appointment_exist INT DEFAULT 0;
+DECLARE message VARCHAR(150) DEFAULT NULL;
+SELECT fld_AppointmentId INTO appointment_id
+FROM tbl_AppointmentReference 
+WHERE fld_ReferenceCode=reference_code
+AND fld_IsDeleted=0;
 
-UPDATE tbl_Appointment
-SET fld_PatientName=patient_name,
-	fld_PatientContactNumber=patient_contact_no,
-    fld_EmailAddress = email_address,
-    fld_BranchCode = branch_code,
-    fld_BranchName = branch_name,
-    fld_DateOfAppointment = appointment_date,
-    fld_StartTimeSlot = start_timeslot,
-    fld_EndTimeSlot = end_timeslot,
-    fld_ModifiedBy= modified_by,
-    fld_DateModified= current_timestamp()
-WHERE fld_AppointmentId= appointment_id
-AND (fld_IsCancelled= 0 OR fld_IsDeleted=0);
-
+IF appointment_id > 0
+	THEN
+		SELECT COUNT(*) INTO appointment_exist
+        FROM tbl_Appointment
+        WHERE  fld_AppointmentId !=appointment_id
+        AND fld_DateOfAppointment = appointment_date
+        AND (
+            
+                ( start_timeslot <= fld_StartTimeSlot  AND end_timeslot >= fld_EndTimeSlot)
+			   OR (start_timeslot >= fld_StartTimeSlot AND end_timeSlot <= fld_EndTimeSlot)
+               )
+			   
+		AND fld_BranchCode = branch_code
+		AND (fld_IsCancelled= 0 OR fld_IsCancelled IS NULL) AND fld_IsDeleted =0;
+    
+        IF appointment_exist = 0
+			THEN
+            	UPDATE tbl_Appointment
+				SET fld_PatientName=patient_name,
+				fld_PatientContactNumber=patient_contact_no,
+				fld_EmailAddress = email_address,
+				fld_BranchCode = branch_code,
+				fld_BranchName = branch_name,
+				fld_DateOfAppointment = appointment_date,
+				fld_StartTimeSlot = start_timeslot,
+				fld_EndTimeSlot = end_timeslot,
+				fld_ModifiedBy= modified_by,
+				fld_DateModified= current_timestamp()
+				WHERE fld_AppointmentId= appointment_id
+				AND ((fld_IsCancelled= 0 OR fld_IsCancelled IS NULL) OR fld_IsDeleted=0);
+		ELSE
+			SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The slot you had requested was not available';
+		END IF;
+	ELSE
+		SET message= CONCAT('The reference code ''',reference_code,''' does not exist');
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = message;
+	END IF;
 END$$
 
 --
@@ -691,17 +737,11 @@ DELIMITER ;
 --
 
 DROP TABLE IF EXISTS `tbl_AffiliateLevel`;
-CREATE TABLE IF NOT EXISTS `tbl_AffiliateLevel` (
-  `fld_AffiliateLevelID` int(11) NOT NULL AUTO_INCREMENT,
-  `fld_AffiliateLevelName` varchar(20) NOT NULL,
-  PRIMARY KEY (`fld_AffiliateLevelID`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `tbl_AffiliateLevel` (
+  `fld_AffiliateLevelID` int(11) NOT NULL,
+  `fld_AffiliateLevelName` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Truncate table before insert `tbl_AffiliateLevel`
---
-
-TRUNCATE TABLE `tbl_AffiliateLevel`;
 --
 -- Dumping data for table `tbl_AffiliateLevel`
 --
@@ -718,8 +758,8 @@ INSERT INTO `tbl_AffiliateLevel` (`fld_AffiliateLevelID`, `fld_AffiliateLevelNam
 --
 
 DROP TABLE IF EXISTS `tbl_Appointment`;
-CREATE TABLE IF NOT EXISTS `tbl_Appointment` (
-  `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `tbl_Appointment` (
+  `fld_AppointmentId` bigint(20) NOT NULL,
   `fld_PatientName` varchar(150) DEFAULT NULL,
   `fld_PatientContactNumber` varchar(15) DEFAULT NULL,
   `fld_EmailAddress` varchar(60) DEFAULT NULL,
@@ -736,21 +776,13 @@ CREATE TABLE IF NOT EXISTS `tbl_Appointment` (
   `fld_DateDeleted` datetime DEFAULT NULL,
   `fld_DeletedBy` varchar(30) DEFAULT NULL,
   `fld_IsDeleted` bit(1) DEFAULT NULL,
-  `fld_IsCancelled` bit(1) DEFAULT NULL,
-  PRIMARY KEY (`fld_AppointmentId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+  `fld_IsCancelled` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Truncate table before insert `tbl_Appointment`
---
-
-TRUNCATE TABLE `tbl_Appointment`;
 --
 -- Dumping data for table `tbl_Appointment`
 --
 
-INSERT INTO `tbl_Appointment` (`fld_AppointmentId`, `fld_PatientName`, `fld_PatientContactNumber`, `fld_EmailAddress`, `fld_BranchCode`, `fld_BranchName`, `fld_DateOfAppointment`, `fld_StartTimeSlot`, `fld_EndTimeSlot`, `fld_AppointBy`, `fld_DateCancelled`, `fld_ModifiedBy`, `fld_DateModified`, `fld_CancelledBy`, `fld_DateDeleted`, `fld_DeletedBy`, `fld_IsDeleted`, `fld_IsCancelled`) VALUES
-(1, 'Jhay Mendoza', '09381250716', 'jrockhackerz@gmail.com', 'BR1', 'Branch 1', '2021-08-29 00:00:00', 600, 800, 'admin', NULL, NULL, NULL, NULL, NULL, NULL, b'0', NULL);
 
 -- --------------------------------------------------------
 
@@ -759,28 +791,21 @@ INSERT INTO `tbl_Appointment` (`fld_AppointmentId`, `fld_PatientName`, `fld_Pati
 --
 
 DROP TABLE IF EXISTS `tbl_AppointmentReference`;
-CREATE TABLE IF NOT EXISTS `tbl_AppointmentReference` (
-  `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `tbl_AppointmentReference` (
+  `fld_ReferenceId` bigint(20) NOT NULL,
   `fld_ReferenceCode` varchar(30) DEFAULT NULL,
   `fld_AppointmentId` bigint(20) DEFAULT NULL,
   `fld_DateCreated` datetime DEFAULT NULL,
   `fld_DateUsed` datetime DEFAULT NULL,
   `fld_IsUsed` bit(1) DEFAULT NULL,
-  `fld_IsDeleted` bit(1) DEFAULT NULL,
-  PRIMARY KEY (`fld_ReferenceId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Truncate table before insert `tbl_AppointmentReference`
---
-
-TRUNCATE TABLE `tbl_AppointmentReference`;
 --
 -- Dumping data for table `tbl_AppointmentReference`
 --
 
-INSERT INTO `tbl_AppointmentReference` (`fld_ReferenceId`, `fld_ReferenceCode`, `fld_AppointmentId`, `fld_DateCreated`, `fld_DateUsed`, `fld_IsUsed`, `fld_IsDeleted`) VALUES
-(1, 'AP2021-08-0001', 1, '2021-08-28 11:23:39', NULL, b'0', b'0');
+
 
 -- --------------------------------------------------------
 
@@ -789,23 +814,17 @@ INSERT INTO `tbl_AppointmentReference` (`fld_ReferenceId`, `fld_ReferenceCode`, 
 --
 
 DROP TABLE IF EXISTS `tbl_Branch`;
-CREATE TABLE IF NOT EXISTS `tbl_Branch` (
-  `fld_BranchId` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `tbl_Branch` (
+  `fld_BranchId` bigint(20) NOT NULL,
   `fld_BranchCode` varchar(5) DEFAULT NULL,
   `fld_BranchName` varchar(60) DEFAULT NULL,
   `fld_BranchAddress` varchar(250) DEFAULT NULL,
   `fld_OpenTime` int(11) DEFAULT NULL,
   `fld_CloseTime` int(11) DEFAULT NULL,
   `fld_DateCreated` datetime DEFAULT NULL,
-  `fld_IsActive` bit(1) DEFAULT NULL,
-  PRIMARY KEY (`fld_BranchId`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+  `fld_IsActive` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Truncate table before insert `tbl_Branch`
---
-
-TRUNCATE TABLE `tbl_Branch`;
 --
 -- Dumping data for table `tbl_Branch`
 --
@@ -822,33 +841,16 @@ INSERT INTO `tbl_Branch` (`fld_BranchId`, `fld_BranchCode`, `fld_BranchName`, `f
 --
 
 DROP TABLE IF EXISTS `tbl_PasswordReset`;
-CREATE TABLE IF NOT EXISTS `tbl_PasswordReset` (
-  `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `tbl_PasswordReset` (
+  `fld_ID` bigint(20) NOT NULL,
   `fld_Uid` bigint(20) NOT NULL,
   `fld_EmailAddress` varchar(100) NOT NULL,
   `fld_ResetKey` varchar(100) NOT NULL,
   `fld_DateRequested` datetime DEFAULT NULL,
   `fld_DateExpiration` datetime DEFAULT NULL,
   `fld_ShouldExpire` bit(1) DEFAULT NULL,
-  `fld_IsAlreadyUsed` bit(1) DEFAULT NULL,
-  PRIMARY KEY (`fld_ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4;
-
---
--- Truncate table before insert `tbl_PasswordReset`
---
-
-TRUNCATE TABLE `tbl_PasswordReset`;
---
--- Dumping data for table `tbl_PasswordReset`
---
-
-INSERT INTO `tbl_PasswordReset` (`fld_ID`, `fld_Uid`, `fld_EmailAddress`, `fld_ResetKey`, `fld_DateRequested`, `fld_DateExpiration`, `fld_ShouldExpire`, `fld_IsAlreadyUsed`) VALUES
-(1, 31, 'jrockhackerz@gmail.com', 'ca3ffaec3234ac991286ed0433611cf1', '2021-08-01 00:00:00', '2021-08-01 00:30:00', b'1', b'0'),
-(2, 31, 'jrockhackerz@gmail.com', '4f7451d004640be5d2409f5a50be0f5a', '2021-08-01 11:39:39', '2021-08-01 12:09:39', b'1', b'1'),
-(3, 31, 'jrockhackerz@gmail.com', '7d66d6216a0bca0b1e76d08f1e88f44a', '2021-08-01 13:10:19', '2021-08-01 13:40:19', b'1', b'1'),
-(4, 31, 'jrockhackerz@gmail.com', '8a1e031a161b3cbb748aa863260ffcda', '2021-08-14 09:28:07', '2021-08-14 09:58:07', b'1', b'0'),
-(5, 49, 'jordanamurao@gmail.com', '2472b8229658a8217ed6c8f9aaabee56', '2021-08-14 09:50:04', '2021-08-14 10:20:04', b'1', b'0');
+  `fld_IsAlreadyUsed` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -857,17 +859,11 @@ INSERT INTO `tbl_PasswordReset` (`fld_ID`, `fld_Uid`, `fld_EmailAddress`, `fld_R
 --
 
 DROP TABLE IF EXISTS `tbl_Profile`;
-CREATE TABLE IF NOT EXISTS `tbl_Profile` (
-  `fld_ProfileID` int(11) NOT NULL AUTO_INCREMENT,
-  `fld_ProfileName` varchar(20) NOT NULL,
-  PRIMARY KEY (`fld_ProfileID`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `tbl_Profile` (
+  `fld_ProfileID` int(11) NOT NULL,
+  `fld_ProfileName` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Truncate table before insert `tbl_Profile`
---
-
-TRUNCATE TABLE `tbl_Profile`;
 --
 -- Dumping data for table `tbl_Profile`
 --
@@ -884,8 +880,8 @@ INSERT INTO `tbl_Profile` (`fld_ProfileID`, `fld_ProfileName`) VALUES
 --
 
 DROP TABLE IF EXISTS `tbl_UserInformation`;
-CREATE TABLE IF NOT EXISTS `tbl_UserInformation` (
-  `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `tbl_UserInformation` (
+  `fld_ID` bigint(20) NOT NULL,
   `fld_EmployeeNo` varchar(20) DEFAULT NULL,
   `fld_FirstName` varchar(50) NOT NULL,
   `fld_MiddleName` varchar(50) DEFAULT NULL,
@@ -902,35 +898,107 @@ CREATE TABLE IF NOT EXISTS `tbl_UserInformation` (
   `fld_DateRegistered` datetime DEFAULT NULL,
   `fld_DateUpdated` datetime DEFAULT NULL,
   `fld_DateDeleted` datetime DEFAULT NULL,
-  `fld_IsDeleted` bit(1) DEFAULT NULL,
-  PRIMARY KEY (`fld_ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4;
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Truncate table before insert `tbl_UserInformation`
---
-
-TRUNCATE TABLE `tbl_UserInformation`;
 --
 -- Dumping data for table `tbl_UserInformation`
 --
 
 INSERT INTO `tbl_UserInformation` (`fld_ID`, `fld_EmployeeNo`, `fld_FirstName`, `fld_MiddleName`, `fld_LastName`, `fld_Suffix`, `fld_ContactNumber`, `fld_EmailAddress`, `fld_ProfileID`, `fld_AffiliateLevelID`, `fld_Username`, `fld_Password`, `fld_IsActivated`, `fld_IsTemporaryPassword`, `fld_DateRegistered`, `fld_DateUpdated`, `fld_DateDeleted`, `fld_IsDeleted`) VALUES
-(1, '10101', 'Admin', NULL, 'Admin', NULL, '09123456789', 'webmaster@email.com', 1, 1, 'admin', 'cc83897986bf5b2d48c9622ddb0e62c5', b'1', b'0', '2021-06-10 00:00:00', '2021-07-25 00:00:00', NULL, b'0'),
-(31, NULL, 'test name', 'test middle', 'test last', NULL, '09123456789', 'jrockhackerz@gmail.com', 3, 3, 'jhay123', 'c3afcf5fcd49b950cb354b3b94cc72ad', b'0', b'0', '2021-07-18 00:00:00', '2021-08-01 13:39:36', NULL, b'0'),
-(38, '111111', 'test', 'test', 'test edit', NULL, NULL, NULL, 2, 0, 'jhay06', NULL, b'0', NULL, '2021-07-18 00:00:00', '2021-07-24 00:00:00', NULL, b'0'),
-(39, '111999', 'ziciely', 'dooma', 'tello', NULL, NULL, 'zhai@gmail.com', 2, 0, 'zhai123', 'ac551dd4ce6f105e915c1ef80b660aba', b'0', NULL, '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(40, '120292', 'test', 'test', 'test last', NULL, NULL, 'test@gmail.com1', 2, 0, 'user123', 'da594ab6c4c675392b81fd4d0304ffbb', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(41, '198989', 'test', 'test', 'Mendoza', NULL, NULL, 'test@gmail.com', 2, 0, 'user457', 'add8a3f3997818cd5f26a8301e736d3f', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(42, NULL, 'Test', 'Accre', 'Accre', NULL, '09199728282', 'test@gmail.com', 3, 1, 'TestAccr123', '24a3dad540fb0619523fe06028b851c9', b'0', b'0', '2021-07-25 00:00:00', '2021-07-25 00:00:00', NULL, b'0'),
-(43, '191111', 'tanos', 'tolentino', 'mendoza', NULL, NULL, 'test@gmail.com', 2, 0, 'test155', '4b0bb1aada001fb2af45b06b5cb5f006', b'0', b'0', '2021-07-25 00:00:00', '2021-07-25 00:00:00', NULL, b'0'),
-(44, '111223', 'test', 'test', 'test', NULL, NULL, 'test@gmail.com', 2, 0, 'zhai893', '8c37b204d1d9ab32bf815368867cd60d', b'0', b'0', '2021-07-25 00:00:00', '2021-07-25 00:00:00', NULL, b'0'),
-(45, '192898', 'tst', 'twst', 'test', NULL, NULL, 'test@gmail.com', 2, 0, 'test909', 'ca33668a6ef725d0b3e7ce81c5927bdb', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(46, '191191', 'Jhay', 'Tolentino', 'Mendoza', NULL, NULL, 'jrockhackerz@gmail.com4', 2, 0, 'jhayar123', 'fc1a1cdae9fe0b76ce0c28eb47b0e975', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(47, '1911911', 'Jhay', 'Tolentino', 'Mendoza', NULL, NULL, 'jrockhackerz@gmail.com2', 2, 0, 'jhayar1233', 'ef1dde85fc858ba3be2c886c490fdeff', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(48, '1911912', 'Jhay', 'Tolentino', 'Mendoza', NULL, NULL, 'jrockhackerz@gmail.com23', 2, 0, 'jhayar122', 'd5130b06f2d78462e827e1dd643a63a5', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(49, '112323', 'jordan', '', 'amurao', NULL, NULL, 'jordanamurao@gmail.com', 2, 0, 'jordan12', '4043efeec93f7dfe610dcc3404957830', b'0', b'1', '2021-07-25 00:00:00', NULL, NULL, b'0'),
-(50, NULL, 'test', 'test', 'test', NULL, '09199288933', 'jrockhackerz@gmail.com1', 3, 1, 'testuser19', 'e8e06630f857a21c1831ddfbe71eb48d', b'0', b'0', '2021-07-25 00:00:00', '2021-07-25 00:00:00', NULL, b'0');
+(1, '10101', 'Admin', NULL, 'Admin', NULL, '09123456789', 'webmaster@email.com', 1, 1, 'admin', 'cc83897986bf5b2d48c9622ddb0e62c5', b'1', b'0', '2021-06-10 00:00:00', '2021-07-25 00:00:00', NULL, b'0');
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `tbl_AffiliateLevel`
+--
+ALTER TABLE `tbl_AffiliateLevel`
+  ADD PRIMARY KEY (`fld_AffiliateLevelID`);
+
+--
+-- Indexes for table `tbl_Appointment`
+--
+ALTER TABLE `tbl_Appointment`
+  ADD PRIMARY KEY (`fld_AppointmentId`);
+
+--
+-- Indexes for table `tbl_AppointmentReference`
+--
+ALTER TABLE `tbl_AppointmentReference`
+  ADD PRIMARY KEY (`fld_ReferenceId`);
+
+--
+-- Indexes for table `tbl_Branch`
+--
+ALTER TABLE `tbl_Branch`
+  ADD PRIMARY KEY (`fld_BranchId`);
+
+--
+-- Indexes for table `tbl_PasswordReset`
+--
+ALTER TABLE `tbl_PasswordReset`
+  ADD PRIMARY KEY (`fld_ID`);
+
+--
+-- Indexes for table `tbl_Profile`
+--
+ALTER TABLE `tbl_Profile`
+  ADD PRIMARY KEY (`fld_ProfileID`);
+
+--
+-- Indexes for table `tbl_UserInformation`
+--
+ALTER TABLE `tbl_UserInformation`
+  ADD PRIMARY KEY (`fld_ID`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `tbl_AffiliateLevel`
+--
+ALTER TABLE `tbl_AffiliateLevel`
+  MODIFY `fld_AffiliateLevelID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `tbl_Appointment`
+--
+ALTER TABLE `tbl_Appointment`
+  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `tbl_AppointmentReference`
+--
+ALTER TABLE `tbl_AppointmentReference`
+  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `tbl_Branch`
+--
+ALTER TABLE `tbl_Branch`
+  MODIFY `fld_BranchId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `tbl_PasswordReset`
+--
+ALTER TABLE `tbl_PasswordReset`
+  MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `tbl_Profile`
+--
+ALTER TABLE `tbl_Profile`
+  MODIFY `fld_ProfileID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `tbl_UserInformation`
+--
+ALTER TABLE `tbl_UserInformation`
+  MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

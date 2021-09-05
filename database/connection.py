@@ -33,21 +33,21 @@ class Database:
     def get_config(self) -> DatabaseConfig:
         return self.__db
 
+
 class DatabaseConnection:
-	def __init__(self,db:Database=None):
-		try:
-			if db is not None:
-				conf=db.get_config()
-				self.db=mysql.connector.connect(
-					host=conf.db_host,
-					user=conf.user,
-					password=conf.password,
-					port=conf.db_port,
-					database=conf.db_name
-				)
-		except:
-			raise ConnectionRefusedError('Could not reach database server')
+    def __init__(self, db: Database = None):
+        try:
+            if db is not None:
+                conf = db.get_config()
+                self.db = mysql.connector.connect(
+                    host=conf.db_host,
+                    user=conf.user,
+                    password=conf.password,
+                    port=conf.db_port,
+                    database=conf.db_name
+                )
+        except:
+            raise ConnectionRefusedError('Could not reach database server')
 
-	def get_connection(self):
-		return self.db
-
+    def get_connection(self):
+        return self.db

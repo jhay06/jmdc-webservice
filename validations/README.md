@@ -1,2 +1,0 @@
-# jmdc-webservice
-jmdc webservice
