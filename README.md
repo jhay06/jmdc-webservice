@@ -24,5 +24,10 @@ B. Database Restore.
   2. Look for the "Create Definer" lines 
   3. Change all 'jmdc'@'%'  from the lines with "Create Definer" to your database user
   4. Save and Execute it to mysql workbench
+
+C. Running
+  1. open terminal / cmd 
+  2. cd to webservice path
+  3. then run "docker-compose up -d"
 </pre>
        
