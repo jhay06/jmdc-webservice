@@ -20,7 +20,9 @@ class Appointment:
         end_timeslot = int(input['end_timeslot'])
         appoint_by = input['appoint_by']
         validator = BaseValidation()
+
         patient_name_validate = validator.validate('patient_name', patient_name)
+
         if patient_name_validate is not None:
             return BaseResponse(
                 type='failed',

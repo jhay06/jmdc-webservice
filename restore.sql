@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 05, 2021 at 04:11 AM
+-- Generation Time: Sep 12, 2021 at 02:16 PM
 -- Server version: 10.5.11-MariaDB-1:10.5.11+maria~focal
 -- PHP Version: 8.0.9
 
@@ -105,6 +105,7 @@ AND (
                )
 AND (fld_IsCancelled = 0 OR fld_IsCancelled IS NULL)
 ANd fld_IsDeleted=0
+AND fld_BranchCode = branch_code
 AND fld_AppointBy = appointby;
 
 if exist = 0
@@ -147,6 +148,40 @@ if exist = 0
 	ELSE 
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Slot is not available';
 	END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_AddTutorial`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddTutorial` (`youtube_id` VARCHAR(50), `youtube_title` VARCHAR(150), `youtube_description` LONGTEXT, `created_by` VARCHAR(30))  BEGIN
+DECLARE exist INT default 0;
+SELECT COUNT(*) INTO exist
+FROM tbl_Tutorials
+WHERE ( fld_YoutubeId= youtube_id
+OR fld_YoutubeTitle = youtube_title )
+AND fld_IsDeleted =0;
+if exist = 0
+	THEN 
+		INSERT INTO tbl_Tutorials
+        (
+			fld_YoutubeId,
+            fld_YoutubeTitle,
+            fld_YoutubeDescription,
+            fld_CreatedBy,
+            fld_DateCreated,
+            fld_IsDeleted
+        )
+        VALUES
+        (
+			youtube_id,
+            youtube_title,
+            youtube_description,
+            created_by,
+            current_timestamp(),
+            0
+        );
+else
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='This tutorial was already exist';
+END IF;
+        
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_CancelAppointment`$$
@@ -193,6 +228,38 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_ChangePassword` (`new_password` VARCHAR
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Account does not exist, or the current password is invalid';
 	END IF;
 			
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_DeleteFile`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeleteFile` (`file_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+	UPDATE tbl_FileStore
+    SET fld_IsDeleted =1,
+		fld_DateDeleted= current_timestamp(),
+        fld_DeletedBy =deleted_by
+	WHERE fld_FileId= file_id;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_DeletProduct`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeletProduct` (IN `service_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+	DECLARE image_id BIGINT default 0;
+    SELECT fld_ProductImageId INTO image_id
+    FROM tbl_Service
+    WHERE fld_ServiceId = service_id
+    AND fld_IsDeleted =0;
+    
+    IF image_id > 0
+		THEN
+        CALL usp_DeleteFile(
+			image_id,
+            deleted_by
+        );
+	END IF;
+    UPDATE tbl_Service
+    SET fld_IsDeleted=1
+		, fld_DateDeleted = current_timestamp()
+        , fld_DeletedBy = deleted_by
+	WHERE fld_ServiceId = service_id;
+    
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_ForgotPasswordChange`$$
@@ -379,6 +446,29 @@ FROM tbl_Branch
 WHERE fld_IsActive=true;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_GetClassification`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetClassification` ()  BEGIN
+	SELECT fld_ClassId 'class_id',
+			fld_ClassCode 'class_code',
+            fld_ClassName 'class_name'
+    FROM tbl_ProductClass
+    WHERE fld_IsActive=true;
+    
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetFileData`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetFileData` (`file_id` BIGINT)  BEGIN
+	SELECT fld_FileId 'file_id',
+			fld_FileType 'file_type',
+            fld_FileContentType 'file_content_type',
+            fld_FileName 'file_name',
+            fld_FileSize 'file_size'
+    FROM tbl_FileStore
+    WHERE fld_FileId= file_id
+    AND fld_IsDeleted=0;
+    
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_GetInformationByUsername`$$
 CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetInformationByUsername` (`username` VARCHAR(30))  BEGIN
 	DECLARE exist int default 0;
@@ -433,6 +523,87 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetLoginInformation` (`username` VARCHA
     ;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_GetProductById`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductById` (`product_id` BIGINT)  BEGIN
+	SELECT service.fld_ServiceId 'service_id',
+			service.fld_ProductCode 'product_code',
+            service.fld_ProductName 'product_name',
+            service.fld_ClassId 'class_id',
+            classification.fld_ClassCode 'class_code',
+            classification.fld_ClassName 'class_name',
+            service.fld_ProductDescription 'product_description',
+            service.fld_ProductImageId 'image_id',
+            filestore.fld_FileType 'file_type',
+            filestore.fld_FileName 'file_name',
+            filestore.fld_FileSize 'file_size',
+            filestore.fld_FileContentType 'file_content_type',
+            filestore.fld_FileContent 'file_content'
+    FROM tbl_Service as service
+    LEFT JOIN tbl_ProductClass as classification
+    ON classification.fld_ClassId=service.fld_ClassId
+    LEFT JOIN tbl_FileStore as filestore
+    ON filestore.fld_FileId= service.fld_ProductImageId
+    WHERE service.fld_IsDeleted=0
+    AND service.fld_ServiceId= product_id
+    AND classification.fld_IsActive=1
+    AND filestore.fld_IsDeleted=0;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetProductByProductCode`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductByProductCode` (`product_code` VARCHAR(30))  BEGIN
+SELECT service.fld_ServiceId 'service_id',
+			service.fld_ProductCode 'product_code',
+            service.fld_ProductName 'product_name',
+            service.fld_ClassId 'class_id',
+            classification.fld_ClassCode 'class_code',
+            classification.fld_ClassName 'class_name',
+            service.fld_ProductDescription 'product_description',
+            service.fld_ProductImageId 'image_id',
+            filestore.fld_FileType 'file_type',
+            filestore.fld_FileName 'file_name',
+            filestore.fld_FileSize 'file_size',
+            filestore.fld_FileContentType 'file_content_type',
+            filestore.fld_FileContent 'file_content'
+    FROM tbl_Service as service
+    LEFT JOIN tbl_ProductClass as classification
+    ON classification.fld_ClassId=service.fld_ClassId
+    LEFT JOIN tbl_FileStore as filestore
+    ON filestore.fld_FileId= service.fld_ProductImageId
+    WHERE service.fld_IsDeleted=0
+    AND service.fld_ProductCode=product_code
+    AND classification.fld_IsActive=1
+    AND filestore.fld_IsDeleted=0;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetProductList`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductList` ()  BEGIN
+	SELECT service.fld_ServiceId 'service_id',
+			service.fld_ProductCode 'product_code',
+            service.fld_ProductName 'product_name',
+            service.fld_ClassId 'class_id',
+            classification.fld_ClassCode 'class_code',
+            classification.fld_ClassName 'class_name',
+            service.fld_ProductDescription 'product_description',
+            service.fld_ProductImageId 'image_id',
+            filestore.fld_FileType 'file_type',
+            filestore.fld_FileName 'file_name',
+            filestore.fld_FileSize 'file_size',
+            filestore.fld_FileContentType 'file_content_type',
+            filestore.fld_FileContent 'file_content'
+    FROM tbl_Service as service
+    LEFT JOIN tbl_ProductClass as classification
+    ON classification.fld_ClassId=service.fld_ClassId
+    LEFT JOIN tbl_FileStore as filestore
+    ON filestore.fld_FileId= service.fld_ProductImageId
+    WHERE service.fld_IsDeleted=0
+    AND classification.fld_IsActive=1
+    AND filestore.fld_IsDeleted=0;
+    
+    
+    
+
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_GetReferenceCode`$$
 CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetReferenceCode` (IN `appointment_id` BIGINT)  BEGIN
 	SELECT fld_ReferenceId 'reference_id',
@@ -445,6 +616,27 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetReferenceCode` (IN `appointment_id` 
     WHERE fld_IsDeleted=0
     AND fld_AppointmentId=appointment_id;
 
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetTutorialById`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialById` (`tutorial_id` BIGINT)  BEGIN
+	SELECT fld_TutorialId 'tutorial_id',
+		fld_YoutubeId 'youtube_id',
+        fld_YoutubeTitle 'youtube_title',
+		fld_YoutubeDescription 'youtube_description'
+    FROM tbl_Tutorials
+    WHERE fld_IsDeleted=0
+    AND fld_TutorialId = tutorial_id;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetTutorialList`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialList` ()  BEGIN
+	SELECT fld_TutorialId 'tutorial_id',
+		fld_YoutubeId 'youtube_id',
+        fld_YoutubeTitle 'youtube_title',
+        fld_YoutubeDescription 'youtube_description'
+    FROM tbl_Tutorials
+    WHERE fld_IsDeleted= 0;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetUserInformation`$$
@@ -507,6 +699,88 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertAppointmentReference` (`reference
         0
     
     );
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_InsertFile`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertFile` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), OUT `image_id` BIGINT)  BEGIN
+INSERT INTO tbl_FileStore
+    (
+		fld_FileType,
+        fld_FileContentType,
+        fld_FileName,
+        fld_FileSize,
+        fld_FileContent,
+        fld_DateCreated,
+        fld_CreatedBy,
+        fld_IsDeleted
+    )
+    VALUES
+    (	
+		file_type,
+        file_content_type,
+        file_name,
+        file_size,
+        UNHEX(file_content),
+        current_timestamp(),
+        created_by,
+        0
+	);
+    SELECT LAST_INSERT_ID() INTO image_id;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_InsertService`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertService` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), `product_code` VARCHAR(30), `product_name` VARCHAR(150), `class_id` INT, `product_description` VARCHAR(8000))  BEGIN
+	DECLARE exist int default 0;
+    SELECT COUNT(*) INTO exist
+    FROM tbl_Service
+    WHERE (fld_ProductCode = product_code
+    OR fld_ProductName = product_name)
+    AND fld_IsDeleted =0;
+    
+    IF exist = 0
+		THEN
+
+		CALL usp_InsertFile(
+			file_type,
+			file_content_type,
+			file_name,
+			file_size,
+			file_content,
+			created_by,
+			@image_id
+		);
+		IF @image_id > 0
+			THEN
+				INSERT INTO tbl_Service
+				(
+					fld_ProductCode,
+					fld_ProductName,
+					fld_ClassId,
+					fld_ProductDescription,
+					fld_ProductImageId,
+					fld_DateCreated,
+					fld_CreatedBy,
+					fld_IsDeleted
+                
+				)
+				VALUES
+				(
+					product_code,
+					product_name,
+					class_id,
+					product_description,
+					@image_id,
+					current_timestamp(),
+					created_by,
+					0
+            
+				);
+		ELSE
+				SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot upload the image';	
+		END IF;
+	ELSE
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Product already exist';
+	END IF;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_IsValidResetKey`$$
@@ -713,6 +987,57 @@ IF appointment_id > 0
 	END IF;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_UpdateProduct`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateProduct` (`service_id` BIGINT, `upload_new_file` BIT, `file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `modified_by` VARCHAR(30), `product_code` VARCHAR(30), `product_name` VARCHAR(150), `class_id` INT, `product_description` VARCHAR(8000))  BEGIN
+	DECLARE exist INT default 0;
+    DECLARE image_id BIGINT default 0;
+    SELECT COUNT(*) INTO exist
+    FROM tbl_Service 
+    WHERE (fld_ProductCode = product_code
+    OR fld_ProductName = product_name)
+    AND fld_IsDeleted = 0
+    AND fld_ServiceId !=service_id;
+    if exist = 0
+		THEN
+			If upload_new_file = 1
+				THEN
+					CALL usp_InsertFile(
+						file_type,
+						file_content_type,
+						file_name,
+						file_size,
+						file_content,
+						modified_by,
+						@image_id
+					);
+					SET image_id= @image_id;
+			ELSE
+				SELECT fld_ProductImageId INTO image_id
+                FROM tbl_Service
+                WHERE fld_ServiceId = service_id;
+			END IF;
+			IF image_id > 0
+				THEN
+					UPDATE tbl_Service
+                    SET fld_ProductCode = product_code
+						, fld_ProductName = product_name
+                        , fld_ClassId = class_id
+                        , fld_ProductImageId = image_id
+                        , fld_ModifiedBy = modified_by
+                        , fld_DateModified = current_timestamp()
+                        , fld_IsDeleted =0
+					WHERE fld_ServiceId = service_id;
+			ELSE
+				SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot upload image file';
+			END IF;
+            
+	ELSE
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Product already exist';
+		
+    END IF;
+    
+END$$
+
 --
 -- Functions
 --
@@ -837,6 +1162,34 @@ INSERT INTO `tbl_Branch` (`fld_BranchId`, `fld_BranchCode`, `fld_BranchName`, `f
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `tbl_FileStore`
+--
+
+DROP TABLE IF EXISTS `tbl_FileStore`;
+CREATE TABLE `tbl_FileStore` (
+  `fld_FileId` bigint(20) NOT NULL,
+  `fld_FileType` varchar(10) DEFAULT NULL,
+  `fld_FileContentType` varchar(60) DEFAULT NULL,
+  `fld_FileName` varchar(100) DEFAULT NULL,
+  `fld_FileSize` int(11) DEFAULT NULL,
+  `fld_FileContent` longblob DEFAULT NULL,
+  `fld_DateCreated` datetime DEFAULT NULL,
+  `fld_CreatedBy` varchar(30) DEFAULT NULL,
+  `fld_DateModified` datetime DEFAULT NULL,
+  `fld_ModifiedBy` varchar(30) DEFAULT NULL,
+  `fld_DateDeleted` datetime DEFAULT NULL,
+  `fld_DeletedBy` varchar(30) DEFAULT NULL,
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `tbl_FileStore`
+--
+
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tbl_PasswordReset`
 --
 
@@ -851,6 +1204,29 @@ CREATE TABLE `tbl_PasswordReset` (
   `fld_ShouldExpire` bit(1) DEFAULT NULL,
   `fld_IsAlreadyUsed` bit(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_ProductClass`
+--
+
+DROP TABLE IF EXISTS `tbl_ProductClass`;
+CREATE TABLE `tbl_ProductClass` (
+  `fld_ClassId` int(11) NOT NULL,
+  `fld_ClassCode` varchar(30) DEFAULT NULL,
+  `fld_ClassName` varchar(150) DEFAULT NULL,
+  `fld_IsActive` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `tbl_ProductClass`
+--
+
+INSERT INTO `tbl_ProductClass` (`fld_ClassId`, `fld_ClassCode`, `fld_ClassName`, `fld_IsActive`) VALUES
+(1, 'CL1', 'Class 1', b'1'),
+(2, 'CL2', 'Class 2', b'1'),
+(3, 'CL3', 'Class 3', b'1');
 
 -- --------------------------------------------------------
 
@@ -872,6 +1248,55 @@ INSERT INTO `tbl_Profile` (`fld_ProfileID`, `fld_ProfileName`) VALUES
 (1, 'SuperUser'),
 (2, 'Staff'),
 (3, 'Dentist');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_Service`
+--
+
+DROP TABLE IF EXISTS `tbl_Service`;
+CREATE TABLE `tbl_Service` (
+  `fld_ServiceId` bigint(20) NOT NULL,
+  `fld_ProductCode` varchar(30) DEFAULT NULL,
+  `fld_ProductName` varchar(150) DEFAULT NULL,
+  `fld_ClassId` int(11) DEFAULT NULL,
+  `fld_ProductDescription` varchar(8000) DEFAULT NULL,
+  `fld_ProductImageId` bigint(20) DEFAULT NULL,
+  `fld_DateCreated` datetime DEFAULT NULL,
+  `fld_CreatedBy` varchar(30) DEFAULT NULL,
+  `fld_DateModified` datetime DEFAULT NULL,
+  `fld_ModifiedBy` varchar(30) DEFAULT NULL,
+  `fld_DateDeleted` datetime DEFAULT NULL,
+  `fld_DeletedBy` varchar(30) DEFAULT NULL,
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `tbl_Service`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tbl_Tutorials`
+--
+
+DROP TABLE IF EXISTS `tbl_Tutorials`;
+CREATE TABLE `tbl_Tutorials` (
+  `fld_TutorialId` bigint(20) NOT NULL,
+  `fld_YoutubeId` varchar(50) DEFAULT NULL,
+  `fld_YoutubeTitle` varchar(150) DEFAULT NULL,
+  `fld_YoutubeDescription` longtext DEFAULT NULL,
+  `fld_CreatedBy` varchar(30) DEFAULT NULL,
+  `fld_DateCreated` datetime DEFAULT NULL,
+  `fld_ModifiedBy` varchar(30) DEFAULT NULL,
+  `fld_DateModified` datetime DEFAULT NULL,
+  `fld_DeletedBy` varchar(30) DEFAULT NULL,
+  `fld_DateDeleted` datetime DEFAULT NULL,
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -937,16 +1362,40 @@ ALTER TABLE `tbl_Branch`
   ADD PRIMARY KEY (`fld_BranchId`);
 
 --
+-- Indexes for table `tbl_FileStore`
+--
+ALTER TABLE `tbl_FileStore`
+  ADD PRIMARY KEY (`fld_FileId`);
+
+--
 -- Indexes for table `tbl_PasswordReset`
 --
 ALTER TABLE `tbl_PasswordReset`
   ADD PRIMARY KEY (`fld_ID`);
 
 --
+-- Indexes for table `tbl_ProductClass`
+--
+ALTER TABLE `tbl_ProductClass`
+  ADD PRIMARY KEY (`fld_ClassId`);
+
+--
 -- Indexes for table `tbl_Profile`
 --
 ALTER TABLE `tbl_Profile`
   ADD PRIMARY KEY (`fld_ProfileID`);
+
+--
+-- Indexes for table `tbl_Service`
+--
+ALTER TABLE `tbl_Service`
+  ADD PRIMARY KEY (`fld_ServiceId`);
+
+--
+-- Indexes for table `tbl_Tutorials`
+--
+ALTER TABLE `tbl_Tutorials`
+  ADD PRIMARY KEY (`fld_TutorialId`);
 
 --
 -- Indexes for table `tbl_UserInformation`
@@ -968,13 +1417,13 @@ ALTER TABLE `tbl_AffiliateLevel`
 -- AUTO_INCREMENT for table `tbl_Appointment`
 --
 ALTER TABLE `tbl_Appointment`
-  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `tbl_AppointmentReference`
 --
 ALTER TABLE `tbl_AppointmentReference`
-  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `tbl_Branch`
@@ -983,16 +1432,40 @@ ALTER TABLE `tbl_Branch`
   MODIFY `fld_BranchId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `tbl_FileStore`
+--
+ALTER TABLE `tbl_FileStore`
+  MODIFY `fld_FileId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `tbl_PasswordReset`
 --
 ALTER TABLE `tbl_PasswordReset`
   MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tbl_ProductClass`
+--
+ALTER TABLE `tbl_ProductClass`
+  MODIFY `fld_ClassId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `tbl_Profile`
 --
 ALTER TABLE `tbl_Profile`
   MODIFY `fld_ProfileID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `tbl_Service`
+--
+ALTER TABLE `tbl_Service`
+  MODIFY `fld_ServiceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `tbl_Tutorials`
+--
+ALTER TABLE `tbl_Tutorials`
+  MODIFY `fld_TutorialId` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbl_UserInformation`

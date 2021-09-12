@@ -3,7 +3,7 @@ from api.mutation.login import Login
 from api.mutation.register import Register
 from api.mutation.account import Account
 from api.mutation.appointment import Appointment
-
+from api.mutation.service import Service
 class MutationResolver:
     def __init__(self):
         self.__query = ObjectType("Mutation")
@@ -38,6 +38,7 @@ class MutationResolver:
         self.forgot_password()
         self.change_password_forgot()
         Appointment.resolve_all(self.__query)
+        Service.resolve_all(self.__query)
 
     def get_definition(self) -> ObjectType:
         return self.__query

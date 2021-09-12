@@ -226,7 +226,7 @@
                 "error":"patient name must not be larger than 150 characters long"
             },
             "regex":{
-                "val":"^[a-zA-Z0-9 ._']+$",
+                "val":"^[a-zA-Z0-9 ,._']+$",
                 "error":"invalid patient name"
             }
         }
@@ -262,6 +262,78 @@
                 "val":"^(Male|Female|male|female)+$",
                 "error":"gender must be either male or female only"
             
+            }
+        }
+    },
+    "product_code": {
+        "type": "string",
+        "config": {
+            "min": {
+                "val": 2,
+                "error": "Product code  must have atleast 2 characters"
+            },
+            "max": {
+                "val": 30,
+                "error": "Product code should not be larger than 30 characters"
+            },
+            "regex":{
+                "val":"^[a-zA-Z0-9]+$",
+                "error":"Invalid character found from product code, only letters and numbers are allowed"
+            }
+        }
+    },
+    "product_name": {
+        "type": "string",
+        "config": {
+            "min":{
+                "val":  3,
+                "error": "Product name too short"
+            },
+            "max": {
+                "val": 150,
+                "error": "Product name too long"
+            },
+            "regex": {
+                "val": "^[- ,.a-zA-Z0-9]+$",
+                "error": "Invalid character found from the product name"
+            }
+        }
+    },
+    "product_description": {
+        "type": "string",
+        "config": {
+            "min": {
+                "val": 5,
+                "error": "Product description too short"
+            },
+            "max": {
+                "val": 250,
+                "error": "Product description too long"
+            },
+            "regex": {
+                "val": "^[- ,.()a-zA-Z0-9]+$",
+                "error": "Invalid characters found from the product description"
+            }
+        }
+    },
+    "image_file": {
+        "type": "file",
+        "config": {
+            "min": {
+                "val":1000,
+                "error": "This image was too small"
+            },
+            "max": {
+                "val": 3000000,
+                "error": "Maximum of 3MB file exceeds"
+            },
+            "mimes": {
+                "error": "Only jpg or png is allowed",
+                "extension": {
+                    ".jpg": "image/jpg",
+                    ".jpeg": "image/jpeg",
+                    ".png": "image/png"
+                }
             }
         }
     }

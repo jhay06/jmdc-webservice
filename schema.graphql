@@ -55,6 +55,29 @@ type Appointment{
 
 }
 
+
+type ProductClass{
+	class_id:Int
+	class_code:String
+	class_name:String
+}
+
+type Product{
+	service_id:Int
+	product_code:String
+	product_name:String
+	class_id:Int
+	class_code:String
+	class_name:String
+	product_description:String
+	image_id:Int
+	file_type:String
+	file_name:String
+	file_size:Int
+	file_content_type:String
+	file_content:String
+}
+
 """end of types"""
 
 
@@ -204,6 +227,44 @@ input GetActiveAppointmentByRangeInput{
 input GetAppointmentInformationInput{
 	appointment_id:Int
 }
+input FileInput{
+	file_type:String!
+	file_content_type:String
+	file_name:String!
+	file_size:Int
+	file_content:String!
+}
+input AddServiceInput{
+	product_code:String
+	product_name:String!
+	class_id:Int!
+	product_description:String!
+	image_file:FileInput!
+	created_by:String!
+
+}
+input UpdateServiceInput{
+	service_id:Int!
+	upload_new_file:Boolean!
+	product_code:String
+	product_name:String!
+	class_id:Int!
+	product_description:String!
+	image_file:FileInput!
+	modified_by:String!
+
+}
+input DeleteServiceInput{
+	service_id:Int!
+	deleted_by:String!
+}
+input GetProductByIdInput{
+	service_id:Int
+}
+input GetProductByProductCodeInput{
+	product_code:String!
+}
+
 #end of inputs#
 
 """response"""
@@ -325,6 +386,22 @@ type GenerateAppointmentReferenceResponse{
 	message:String
 	data:AppointmentReferenceCode
 }
+type GetProductClassListResponse{
+	type:String!
+	message:String
+	data:[ProductClass]
+}
+
+type GetProductListResponse{
+	type:String!
+	message:String
+	data:[Product]
+}
+type GetProductInfoResponse{
+	type:String!
+	message:String
+	data:Product
+}
 
 """end of response"""
 
@@ -340,6 +417,10 @@ type Query{
 	get_active_appointment_by_username(input:GetAppointmentListByUsernameInput!):GetActiveAppointmentListResponse
 	get_active_appointment_by_range(input:GetActiveAppointmentByRangeInput!):GetActiveAppointmentListResponse
 	get_cancelled_appointment_by_username(input:GetAppointmentListByUsernameInput!):GetCancelledAppointmentListResponse
+	get_product_class_list:GetProductClassListResponse
+	get_services:GetProductListResponse
+	get_product_by_id(input:GetProductByIdInput!):GetProductInfoResponse
+	get_product_by_product_code(input:GetProductByProductCodeInput!):GetProductInfoResponse
 }
 type Mutation{
 	change_password_via_forgot(input:ChangePasswordViaForgotInput!):BaseResponse
@@ -353,4 +434,7 @@ type Mutation{
 	generate_appointment_reference_code:GenerateAppointmentReferenceResponse
 	cancel_appointment(input:CancelAppointmentInput!):BaseResponse
 	update_appointment(input:UpdateAppointmentInput!):BaseResponse
+	add_service(input:AddServiceInput!):BaseResponse
+	delete_service(input:DeleteServiceInput!):BaseResponse
+	update_service(input:UpdateServiceInput!):BaseResponse
 }

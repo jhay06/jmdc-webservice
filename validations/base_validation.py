@@ -4,7 +4,7 @@ from validations.password.password_validation import PasswordValidation
 from validations.numerical.numerical_validation import NumericalValidation
 from validations.age.age_validation import AgeValidation
 from validations.email.email_validation import EmailValidation
-
+from validations.file.file_validation import FileValidation
 
 class BaseValidation:
     def __init__(self):
@@ -51,6 +51,11 @@ class BaseValidation:
                 elif conf['type'] == 'email':
                     email_validation = EmailValidation(**conf['config'])
                     valid = email_validation.is_valid(value)
+                    if valid is not None:
+                        return valid
+                elif conf['type'] == 'file':
+                    file_validation=FileValidation(**conf['config'])
+                    valid = file_validation.is_valid(value)
                     if valid is not None:
                         return valid
                 else:
