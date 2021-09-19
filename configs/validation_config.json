@@ -316,6 +316,108 @@
             }
         }
     },
+    "video_description": {
+        "type": "string",
+        "config": {
+            "min": {
+                "val": 5,
+                "error": "Video description too short"
+            },
+            "max": {
+                "val": 250,
+                "error": "Vide description too long"
+            },
+            "regex": {
+                "val": "^[- ,.()a-zA-Z0-9]+$",
+                "error": "Invalid characters found from the video description"
+            }
+        }
+    },
+    "video_title": {
+         "type": "string",
+        "config": {
+            "min":{
+                "val":  3,
+                "error": "video title too short"
+            },
+            "max": {
+                "val": 150,
+                "error": "video title too long"
+            },
+            "regex": {
+                "val": "^[- ,.a-zA-Z0-9]+$",
+                "error": "Invalid character found from the video title"
+            }
+        }
+    },
+    "youtube_id": {
+         "type": "string",
+        "config": {
+            "min":{
+                "val":  5,
+                "error": "Youtube id must have atleast 5 characters long"
+            },
+            "max": {
+                "val": 30,
+                "error": "Youtube id must not larger than 30 characters long"
+            },
+            "regex": {
+                "val": "^[a-zA-Z0-9]+$",
+                "error": "Invalid youtube id"
+            }
+        }
+    },
+    "youtube_link": {
+        "type": "string",
+        "config": {
+            "min":{
+                "val":  20,
+                "error": "Youtube link must have atleast 20 characters long"
+            },
+            "max": {
+                "val": 100,
+                "error": "Youtube link must not larger than 100 characters"
+            },
+            "regex": {
+                "val": "^(https://youtube.com/|https://www.youtube.com/)+(watch)+([?])+(v=)+([-_a-zA-Z0-9]+)$",
+                "error": "Invalid youtube link format , format should be (https://youtube.com/watch?v=your_id)"
+            }
+        }
+    },
+    "message":{
+        "type": "string",
+        "config": {
+            "min": {
+                "val": 5,
+                "error": "message too short"
+            },
+            "max": {
+                "val": 250,
+                "error": "message too long"
+            },
+            "regex": {
+                "val": "^[- ,.()a-zA-Z0-9]+$",
+                "error": "Invalid characters found from the message"
+            }
+        }
+    },
+    "full_name": {
+        "type": "string",
+        "config": {
+            "min": {
+                "val": 5,
+                "error": "Fullname must have atleast 5 character"
+            },
+            "max": {
+                "val": 100,
+                "error": "Fullname must not larger than 100 character"
+            },
+            "regex": {
+                "val": "^[- ,.a-zA-Z0-9]+$",
+                "error": "Invalid characters found from your fullname"
+            }
+        }
+    },
     "image_file": {
         "type": "file",
         "config": {

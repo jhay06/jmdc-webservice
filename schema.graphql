@@ -178,6 +178,11 @@ input AppointmentListInput{
 	filtered_year:Int
 	
 }
+input PaginationInput{
+	page:Int
+	limit_page:Int
+	has_pagination:Boolean
+}
 
 
 input GetUserInfoInput{
@@ -265,9 +270,52 @@ input GetProductByProductCodeInput{
 	product_code:String!
 }
 
+input AddTutorialInput{
+	youtube_id:String!
+	video_title:String!
+	youtube_link:String!
+	video_description:String
+	created_by:String!
+}
+input UpdateTutorialInput{
+	video_id:Int!
+	youtube_id:String!
+	video_title:String!
+	youtube_link:String!
+	video_description:String
+	modified_by:String!
+}
+input DeleteTutorialInput{
+	video_id:Int!
+	deleted_by:String
+}
+input GetTutorialInfoInput{
+	youtube_id:String!
+}
+
+input SubmitFeedbackInput{
+	full_name:String!
+	contact_no:String!
+	email_address:String!
+	message:String!
+}
 #end of inputs#
 
 """response"""
+
+type Pagination{
+	current_page:Int
+	total_count:Int
+}
+
+
+type Tutorial{
+	video_id:Int
+	youtube_id:String
+	video_title:String
+	youtube_link:String
+	video_description:String
+}
 type UserInfoListResponse{
     users:[UserInformation]
 }
@@ -396,13 +444,24 @@ type GetProductListResponse{
 	type:String!
 	message:String
 	data:[Product]
+	pagination:Pagination
 }
 type GetProductInfoResponse{
 	type:String!
 	message:String
 	data:Product
 }
-
+type GetTutorialListResponse{
+	type:String!
+	message:String
+	data:[Tutorial],
+	pagination:Pagination
+}
+type GetTutorialInfoResponse{
+	type:String!
+	message:String
+	data:Tutorial
+}
 """end of response"""
 
 
@@ -418,9 +477,11 @@ type Query{
 	get_active_appointment_by_range(input:GetActiveAppointmentByRangeInput!):GetActiveAppointmentListResponse
 	get_cancelled_appointment_by_username(input:GetAppointmentListByUsernameInput!):GetCancelledAppointmentListResponse
 	get_product_class_list:GetProductClassListResponse
-	get_services:GetProductListResponse
+	get_services(pagination:PaginationInput):GetProductListResponse
 	get_product_by_id(input:GetProductByIdInput!):GetProductInfoResponse
 	get_product_by_product_code(input:GetProductByProductCodeInput!):GetProductInfoResponse
+	get_tutorial_list(pagination:PaginationInput):GetTutorialListResponse
+	get_tutorial_info(input:GetTutorialInfoInput!):GetTutorialInfoResponse
 }
 type Mutation{
 	change_password_via_forgot(input:ChangePasswordViaForgotInput!):BaseResponse
@@ -437,4 +498,8 @@ type Mutation{
 	add_service(input:AddServiceInput!):BaseResponse
 	delete_service(input:DeleteServiceInput!):BaseResponse
 	update_service(input:UpdateServiceInput!):BaseResponse
+	add_tutorial(input:AddTutorialInput!):BaseResponse
+	update_tutorial(input:UpdateTutorialInput!):BaseResponse
+	delete_tutorial(input:DeleteTutorialInput!):BaseResponse
+	submit_feedback(input:SubmitFeedbackInput!):BaseResponse
 }

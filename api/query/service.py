@@ -4,6 +4,7 @@ from api.response.base_response import BaseResponse
 from database.connection import Database, DatabaseConnection
 from database.model.product_model import ProductModel
 from database.json_result import JsonResult
+from api.utils.pagination import Pagination, PaginationResponse
 import mysql.connector
 class Service:
     @staticmethod
@@ -72,24 +73,47 @@ class Service:
                 message=err.msg
             )
     @staticmethod
-    def get_service(obj, info):
+    def get_service(obj, info,pagination = {}):
+        paging=Pagination(**pagination)
+
         try:
             db = Database(db_config_file='db_config.json')
             dbcon = DatabaseConnection(db)
             cursor = dbcon.get_connection().cursor()
             cursor.callproc('usp_GetProductList')
             list = []
+            total_count=0
+
             for result in cursor.stored_results():
                 data = JsonResult(result)
                 i = 0
-                while i < data.rows:
+                total_count=data.rows
+                total_row=data.rows
+                if paging.has_pagination:
+
+                    if paging.limit_page < data.rows:
+                        if paging.page == 0:
+                            paging.page=1
+
+                        i=(paging.page-1)*paging.limit_page
+                        total_row = (paging.limit_page)*paging.page
+                        if(total_row > total_count):
+                            total_row = total_count
+
+
+                while i < total_row:
+                    print(i)
                     data_json = data.to_json(i)
                     list.append(ProductModel(**data_json))
                     i += 1
             return BaseResponse(
                 type='success',
                 message='Got product list',
-                data=list
+                data=list,
+                pagination=PaginationResponse(
+                    current_page=paging.page,
+                    total_count=total_count
+                ).__dict__
             )
 
         except mysql.connector.Error as err:

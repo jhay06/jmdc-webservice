@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 12, 2021 at 02:16 PM
+-- Generation Time: Sep 19, 2021 at 01:56 PM
 -- Server version: 10.5.11-MariaDB-1:10.5.11+maria~focal
 -- PHP Version: 8.0.9
 
@@ -20,6 +20,7 @@ SET time_zone = "+00:00";
 --
 -- Database: `db_JDMC`
 --
+DROP DATABASE IF EXISTS `db_JDMC`;
 CREATE DATABASE IF NOT EXISTS `db_JDMC` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `db_JDMC`;
 
@@ -151,12 +152,13 @@ if exist = 0
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_AddTutorial`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddTutorial` (`youtube_id` VARCHAR(50), `youtube_title` VARCHAR(150), `youtube_description` LONGTEXT, `created_by` VARCHAR(30))  BEGIN
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddTutorial` (`youtube_id` VARCHAR(50), `youtube_title` VARCHAR(150), `youtube_link` VARCHAR(100), `youtube_description` LONGTEXT, `created_by` VARCHAR(30))  BEGIN
 DECLARE exist INT default 0;
 SELECT COUNT(*) INTO exist
 FROM tbl_Tutorials
 WHERE ( fld_YoutubeId= youtube_id
-OR fld_YoutubeTitle = youtube_title )
+OR fld_YoutubeTitle = youtube_title
+OR fld_YoutubeLink = youtube_link )
 AND fld_IsDeleted =0;
 if exist = 0
 	THEN 
@@ -164,6 +166,7 @@ if exist = 0
         (
 			fld_YoutubeId,
             fld_YoutubeTitle,
+            fld_YoutubeLink,
             fld_YoutubeDescription,
             fld_CreatedBy,
             fld_DateCreated,
@@ -173,6 +176,7 @@ if exist = 0
         (
 			youtube_id,
             youtube_title,
+            youtube_link,
             youtube_description,
             created_by,
             current_timestamp(),
@@ -237,6 +241,16 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeleteFile` (`file_id` BIGINT, `deleted
 		fld_DateDeleted= current_timestamp(),
         fld_DeletedBy =deleted_by
 	WHERE fld_FileId= file_id;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_DeleteTutorial`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeleteTutorial` (`video_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+UPDATE tbl_Tutorials
+SET fld_DeletedBy = deleted_by
+	, fld_DateDeleted =current_timestamp()
+    , fld_IsDeleted =1
+WHERE fld_TutorialId = video_id;
+
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_DeletProduct`$$
@@ -629,12 +643,26 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialById` (`tutorial_id` BIGINT)
     AND fld_TutorialId = tutorial_id;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_GetTutorialByYoutubeId`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialByYoutubeId` (`youtube_id` VARCHAR(100))  BEGIN
+	SELECT fld_TutorialId 'video_id',
+		    fld_YoutubeId 'youtube_id',
+            fld_YoutubeTitle 'video_title',
+            fld_YoutubeLink 'youtube_link',
+            fld_YoutubeDescription 'video_description'
+    FROM tbl_Tutorials
+    WHERE fld_YoutubeId=youtube_id
+    ANd fld_IsDeleted =0;
+
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_GetTutorialList`$$
 CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialList` ()  BEGIN
-	SELECT fld_TutorialId 'tutorial_id',
+	SELECT fld_TutorialId 'video_id',
 		fld_YoutubeId 'youtube_id',
-        fld_YoutubeTitle 'youtube_title',
-        fld_YoutubeDescription 'youtube_description'
+        fld_YoutubeTitle 'video_title',
+        fld_YoutubeLink 'youtube_link',
+        fld_YoutubeDescription 'video_description'
     FROM tbl_Tutorials
     WHERE fld_IsDeleted= 0;
 END$$
@@ -886,6 +914,29 @@ else
 end if;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_submitFeedback`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_submitFeedback` (`full_name` VARCHAR(150), `contact_no` VARCHAR(15), `email_address` VARCHAR(200), `message` LONGTEXT)  BEGIN
+	INSERT INTO tbl_Feedback
+    (	
+		fld_FullName,
+        fld_ContactNumber,
+        fld_EmailAddress,
+        fld_Message,
+        fld_DateSubmitted,
+        fld_IsDeleted
+    
+    )
+    VALUES
+    (
+		full_name,
+        contact_no,
+        email_address,
+        message,
+        current_timestamp(),
+        0
+    );
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_UpdateAccount`$$
 CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_no` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `is_activated` BIT, `new_employee_no` VARCHAR(20), `new_username` VARCHAR(20))  BEGIN
 	DECLARE exist int default 0;
@@ -1038,6 +1089,34 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateProduct` (`service_id` BIGINT, `u
     
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_UpdateTutorial`$$
+CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateTutorial` (`video_id` BIGINT, `youtube_id` VARCHAR(50), `video_title` VARCHAR(150), `youtube_link` VARCHAR(100), `video_description` LONGTEXT, `modified_by` VARCHAR(30))  BEGIN
+DECLARE exist int default 0;
+SELECT COUNT(*) INTO exist
+FROM tbl_Tutorials
+WHERE fld_TutorialId !=video_id
+AND ( fld_YoutubeId = youtube_id OR fld_YoutubeTitle = video_title OR fld_YoutubeLink = youtube_link  )
+AND fld_IsDeleted= 0;
+
+IF exist = 0
+	THEN
+		UPDATE tbl_Tutorials
+        SET fld_YoutubeId = youtube_id
+			, fld_YoutubeTitle = video_title
+            , fld_YoutubeLink = youtube_link
+            , fld_YoutubeDescription = video_description
+            , fld_ModifiedBy= modified_by
+            , fld_DateModified =current_timestamp()
+            , fld_IsDeleted =0
+		WHERE fld_TutorialId= video_id;
+ELSE
+	BEGIN
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='This tutorial was already exist';
+    
+    END;
+END IF;
+END$$
+
 --
 -- Functions
 --
@@ -1130,8 +1209,6 @@ CREATE TABLE `tbl_AppointmentReference` (
 -- Dumping data for table `tbl_AppointmentReference`
 --
 
-
-
 -- --------------------------------------------------------
 
 --
@@ -1162,6 +1239,29 @@ INSERT INTO `tbl_Branch` (`fld_BranchId`, `fld_BranchCode`, `fld_BranchName`, `f
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `tbl_Feedback`
+--
+
+DROP TABLE IF EXISTS `tbl_Feedback`;
+CREATE TABLE `tbl_Feedback` (
+  `fld_FeedbackId` bigint(20) NOT NULL,
+  `fld_FullName` varchar(200) DEFAULT NULL,
+  `fld_ContactNumber` varchar(15) DEFAULT NULL,
+  `fld_EmailAddress` varchar(250) DEFAULT NULL,
+  `fld_Message` longtext DEFAULT NULL,
+  `fld_DateSubmitted` datetime DEFAULT NULL,
+  `fld_DateDeleted` datetime DEFAULT NULL,
+  `fld_DeletedBy` varchar(30) DEFAULT NULL,
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `tbl_Feedback`
+--
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tbl_FileStore`
 --
 
@@ -1185,7 +1285,6 @@ CREATE TABLE `tbl_FileStore` (
 --
 -- Dumping data for table `tbl_FileStore`
 --
-
 
 -- --------------------------------------------------------
 
@@ -1276,7 +1375,6 @@ CREATE TABLE `tbl_Service` (
 -- Dumping data for table `tbl_Service`
 --
 
-
 -- --------------------------------------------------------
 
 --
@@ -1288,6 +1386,7 @@ CREATE TABLE `tbl_Tutorials` (
   `fld_TutorialId` bigint(20) NOT NULL,
   `fld_YoutubeId` varchar(50) DEFAULT NULL,
   `fld_YoutubeTitle` varchar(150) DEFAULT NULL,
+  `fld_YoutubeLink` varchar(100) DEFAULT NULL,
   `fld_YoutubeDescription` longtext DEFAULT NULL,
   `fld_CreatedBy` varchar(30) DEFAULT NULL,
   `fld_DateCreated` datetime DEFAULT NULL,
@@ -1297,6 +1396,11 @@ CREATE TABLE `tbl_Tutorials` (
   `fld_DateDeleted` datetime DEFAULT NULL,
   `fld_IsDeleted` bit(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `tbl_Tutorials`
+--
+
 
 -- --------------------------------------------------------
 
@@ -1362,6 +1466,12 @@ ALTER TABLE `tbl_Branch`
   ADD PRIMARY KEY (`fld_BranchId`);
 
 --
+-- Indexes for table `tbl_Feedback`
+--
+ALTER TABLE `tbl_Feedback`
+  ADD PRIMARY KEY (`fld_FeedbackId`);
+
+--
 -- Indexes for table `tbl_FileStore`
 --
 ALTER TABLE `tbl_FileStore`
@@ -1417,13 +1527,13 @@ ALTER TABLE `tbl_AffiliateLevel`
 -- AUTO_INCREMENT for table `tbl_Appointment`
 --
 ALTER TABLE `tbl_Appointment`
-  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `tbl_AppointmentReference`
 --
 ALTER TABLE `tbl_AppointmentReference`
-  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `tbl_Branch`
@@ -1432,10 +1542,16 @@ ALTER TABLE `tbl_Branch`
   MODIFY `fld_BranchId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `tbl_Feedback`
+--
+ALTER TABLE `tbl_Feedback`
+  MODIFY `fld_FeedbackId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `tbl_FileStore`
 --
 ALTER TABLE `tbl_FileStore`
-  MODIFY `fld_FileId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `fld_FileId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `tbl_PasswordReset`
@@ -1459,13 +1575,13 @@ ALTER TABLE `tbl_Profile`
 -- AUTO_INCREMENT for table `tbl_Service`
 --
 ALTER TABLE `tbl_Service`
-  MODIFY `fld_ServiceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `fld_ServiceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `tbl_Tutorials`
 --
 ALTER TABLE `tbl_Tutorials`
-  MODIFY `fld_TutorialId` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `fld_TutorialId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `tbl_UserInformation`
