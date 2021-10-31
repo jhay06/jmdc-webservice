@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 19, 2021 at 01:56 PM
+-- Generation Time: Oct 31, 2021 at 12:15 PM
 -- Server version: 10.5.11-MariaDB-1:10.5.11+maria~focal
--- PHP Version: 8.0.9
+-- PHP Version: 8.0.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,7 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `db_JDMC`
 --
-DROP DATABASE IF EXISTS `db_JDMC`;
 CREATE DATABASE IF NOT EXISTS `db_JDMC` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `db_JDMC`;
 
@@ -379,7 +378,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentByRange` (`from_range` DA
     ON A.fld_AppointmentId=B.fld_AppointmentId
     WHERE A.fld_DateOfAppointment >= from_range
     AND A.fld_DateOfAppointment <=to_range
-    AND A.fld_AppointBy= appoint_by
+    #AND A.fld_AppointBy= appoint_by
     AND A.fld_BranchCode= branch_code
     AND A.fld_IsDeleted=false;
 END$$
@@ -532,7 +531,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetLoginInformation` (`username` VARCHA
             fld_IsTemporaryPassword AS is_temporary_password,
             fld_Username AS 'username'
     FROM tbl_UserInformation
-    WHERE fld_Username=username AND password=password
+    WHERE fld_Username=username AND fld_Password = password
     AND fld_IsDeleted=false
     ;
 END$$
@@ -1147,6 +1146,11 @@ CREATE TABLE `tbl_AffiliateLevel` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_AffiliateLevel`
+--
+
+TRUNCATE TABLE `tbl_AffiliateLevel`;
+--
 -- Dumping data for table `tbl_AffiliateLevel`
 --
 
@@ -1184,8 +1188,14 @@ CREATE TABLE `tbl_Appointment` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_Appointment`
+--
+
+TRUNCATE TABLE `tbl_Appointment`;
+--
 -- Dumping data for table `tbl_Appointment`
 --
+
 
 
 -- --------------------------------------------------------
@@ -1206,8 +1216,14 @@ CREATE TABLE `tbl_AppointmentReference` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_AppointmentReference`
+--
+
+TRUNCATE TABLE `tbl_AppointmentReference`;
+--
 -- Dumping data for table `tbl_AppointmentReference`
 --
+
 
 -- --------------------------------------------------------
 
@@ -1227,6 +1243,11 @@ CREATE TABLE `tbl_Branch` (
   `fld_IsActive` bit(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Truncate table before insert `tbl_Branch`
+--
+
+TRUNCATE TABLE `tbl_Branch`;
 --
 -- Dumping data for table `tbl_Branch`
 --
@@ -1256,8 +1277,14 @@ CREATE TABLE `tbl_Feedback` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_Feedback`
+--
+
+TRUNCATE TABLE `tbl_Feedback`;
+--
 -- Dumping data for table `tbl_Feedback`
 --
+
 
 -- --------------------------------------------------------
 
@@ -1283,8 +1310,14 @@ CREATE TABLE `tbl_FileStore` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_FileStore`
+--
+
+TRUNCATE TABLE `tbl_FileStore`;
+--
 -- Dumping data for table `tbl_FileStore`
 --
+
 
 -- --------------------------------------------------------
 
@@ -1304,6 +1337,11 @@ CREATE TABLE `tbl_PasswordReset` (
   `fld_IsAlreadyUsed` bit(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Truncate table before insert `tbl_PasswordReset`
+--
+
+TRUNCATE TABLE `tbl_PasswordReset`;
 -- --------------------------------------------------------
 
 --
@@ -1318,6 +1356,11 @@ CREATE TABLE `tbl_ProductClass` (
   `fld_IsActive` bit(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Truncate table before insert `tbl_ProductClass`
+--
+
+TRUNCATE TABLE `tbl_ProductClass`;
 --
 -- Dumping data for table `tbl_ProductClass`
 --
@@ -1339,6 +1382,11 @@ CREATE TABLE `tbl_Profile` (
   `fld_ProfileName` varchar(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Truncate table before insert `tbl_Profile`
+--
+
+TRUNCATE TABLE `tbl_Profile`;
 --
 -- Dumping data for table `tbl_Profile`
 --
@@ -1372,6 +1420,11 @@ CREATE TABLE `tbl_Service` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_Service`
+--
+
+TRUNCATE TABLE `tbl_Service`;
+--
 -- Dumping data for table `tbl_Service`
 --
 
@@ -1398,9 +1451,13 @@ CREATE TABLE `tbl_Tutorials` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Dumping data for table `tbl_Tutorials`
+-- Truncate table before insert `tbl_Tutorials`
 --
 
+TRUNCATE TABLE `tbl_Tutorials`;
+--
+-- Dumping data for table `tbl_Tutorials`
+--
 
 -- --------------------------------------------------------
 
@@ -1431,11 +1488,14 @@ CREATE TABLE `tbl_UserInformation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
+-- Truncate table before insert `tbl_UserInformation`
+--
+
+TRUNCATE TABLE `tbl_UserInformation`;
+--
 -- Dumping data for table `tbl_UserInformation`
 --
 
-INSERT INTO `tbl_UserInformation` (`fld_ID`, `fld_EmployeeNo`, `fld_FirstName`, `fld_MiddleName`, `fld_LastName`, `fld_Suffix`, `fld_ContactNumber`, `fld_EmailAddress`, `fld_ProfileID`, `fld_AffiliateLevelID`, `fld_Username`, `fld_Password`, `fld_IsActivated`, `fld_IsTemporaryPassword`, `fld_DateRegistered`, `fld_DateUpdated`, `fld_DateDeleted`, `fld_IsDeleted`) VALUES
-(1, '10101', 'Admin', NULL, 'Admin', NULL, '09123456789', 'webmaster@email.com', 1, 1, 'admin', 'cc83897986bf5b2d48c9622ddb0e62c5', b'1', b'0', '2021-06-10 00:00:00', '2021-07-25 00:00:00', NULL, b'0');
 
 --
 -- Indexes for dumped tables
@@ -1527,13 +1587,13 @@ ALTER TABLE `tbl_AffiliateLevel`
 -- AUTO_INCREMENT for table `tbl_Appointment`
 --
 ALTER TABLE `tbl_Appointment`
-  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `tbl_AppointmentReference`
 --
 ALTER TABLE `tbl_AppointmentReference`
-  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `fld_ReferenceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `tbl_Branch`
@@ -1587,7 +1647,7 @@ ALTER TABLE `tbl_Tutorials`
 -- AUTO_INCREMENT for table `tbl_UserInformation`
 --
 ALTER TABLE `tbl_UserInformation`
-  MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
