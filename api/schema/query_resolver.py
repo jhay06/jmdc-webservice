@@ -6,6 +6,7 @@ from api.query.appointment import Appointment
 from api.query.product import Product
 from api.query.service import Service
 from api.query.tutorial import Tutorial
+from api.query.promotion import Promotion
 
 
 class QueryResolver:
@@ -20,6 +21,7 @@ class QueryResolver:
         Product.resolve_all(self.__query)
         Service.resolve_all(self.__query)
         Tutorial.resolve_all(self.__query)
+        Promotion.resolve_all(self.__query)
 
     def resolve_get_validator(self):
         self.__query.set_field('get_validator', Validator.get_validator)

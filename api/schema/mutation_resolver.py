@@ -7,6 +7,7 @@ from api.mutation.account import Account
 from api.mutation.appointment import Appointment
 from api.mutation.service import Service
 from api.mutation.tutorial import Tutorial
+from api.mutation.promotion import Promotion
 class MutationResolver:
     def __init__(self):
         self.__query = ObjectType("Mutation")
@@ -44,6 +45,7 @@ class MutationResolver:
         Service.resolve_all(self.__query)
         Tutorial.resolve_all(self.__query)
         Feedback.resolve_all(self.__query)
+        Promotion.resolve_all(self.__query)
 
     def get_definition(self) -> ObjectType:
         return self.__query

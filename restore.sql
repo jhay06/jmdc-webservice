@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Oct 31, 2021 at 12:15 PM
+-- Generation Time: Nov 13, 2021 at 08:06 AM
 -- Server version: 10.5.11-MariaDB-1:10.5.11+maria~focal
 -- PHP Version: 8.0.12
 
@@ -20,6 +20,7 @@ SET time_zone = "+00:00";
 --
 -- Database: `db_JDMC`
 --
+DROP DATABASE IF EXISTS `db_JDMC`;
 CREATE DATABASE IF NOT EXISTS `db_JDMC` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `db_JDMC`;
 
@@ -28,7 +29,7 @@ DELIMITER $$
 -- Procedures
 --
 DROP PROCEDURE IF EXISTS `usp_AddAccount`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_number` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `your_password` VARCHAR(150))  BEGIN
+CREATE PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_number` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `your_password` VARCHAR(150))  BEGIN
 	
 	DECLARE exist int default 0;
     IF employee_no is not NULL OR employee_no !='None'
@@ -92,7 +93,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20),
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_AddAppointment`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddAppointment` (`patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `appointby` VARCHAR(30), `reference_code` VARCHAR(30))  BEGIN
+CREATE PROCEDURE `usp_AddAppointment` (`patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `appointby` VARCHAR(30), `reference_code` VARCHAR(30))  BEGIN
 DECLARE exist int default 0;
 DECLARE insert_id bigint default 0;
 SELECT COUNT(*) INTO exist
@@ -150,8 +151,62 @@ if exist = 0
 	END IF;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_AddPromotion`$$
+CREATE  PROCEDURE `usp_AddPromotion` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), `image_id` VARCHAR(30), `promotion_description` LONGTEXT, `promotion_status` VARCHAR(10), `promotion_name` VARCHAR(60))  BEGIN
+	DECLARE exist int default 0;
+    SELECT COUNT(*) INTO exist
+    FROM tbl_Promotions
+    WHERE (fld_ImageId = image_id OR fld_PromotionName = promotion_name)
+    AND fld_IsDeleted =0;
+    
+    IF exist = 0
+		THEN
+
+		CALL usp_InsertFile(
+			file_type,
+			file_content_type,
+			file_name,
+			file_size,
+			file_content,
+			created_by,
+			@image_id
+		);
+		IF @image_id > 0
+			THEN
+				INSERT INTO tbl_Promotions
+				(
+					fld_PromotionName,
+					fld_ImageId,
+					fld_Description,
+					fld_Status,
+					fld_FileId,
+					fld_DateCreated,
+					fld_CreatedBy,
+					fld_IsDeleted
+                
+				)
+				VALUES
+				(
+					promotion_name,
+					image_id,
+                    promotion_description,
+                    promotion_status,
+					@image_id,
+					current_timestamp(),
+					created_by,
+					0
+            
+				);
+		ELSE
+				SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot upload the image';	
+		END IF;
+	ELSE
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Promotion already exist';
+	END IF;
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_AddTutorial`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_AddTutorial` (`youtube_id` VARCHAR(50), `youtube_title` VARCHAR(150), `youtube_link` VARCHAR(100), `youtube_description` LONGTEXT, `created_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_AddTutorial` (`youtube_id` VARCHAR(50), `youtube_title` VARCHAR(150), `youtube_link` VARCHAR(100), `youtube_description` LONGTEXT, `created_by` VARCHAR(30))  BEGIN
 DECLARE exist INT default 0;
 SELECT COUNT(*) INTO exist
 FROM tbl_Tutorials
@@ -188,7 +243,7 @@ END IF;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_CancelAppointment`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_CancelAppointment` (`reference_code` VARCHAR(30), `cancelled_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_CancelAppointment` (`reference_code` VARCHAR(30), `cancelled_by` VARCHAR(30))  BEGIN
 	DECLARE appointment_id BIGINT default 0;
     DECLARE message varchar(150) default null;
 	SELECT fld_AppointmentId INTO appointment_id
@@ -211,7 +266,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_CancelAppointment` (`reference_code` VA
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_ChangePassword`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_ChangePassword` (`new_password` VARCHAR(150), `current_password` VARCHAR(150), `username` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_ChangePassword` (`new_password` VARCHAR(150), `current_password` VARCHAR(150), `username` VARCHAR(30))  BEGIN
 	DECLARE exist int default 0;
     SELECT COUNT(*) INTO exist
     FROM tbl_UserInformation
@@ -234,7 +289,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_ChangePassword` (`new_password` VARCHAR
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_DeleteFile`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeleteFile` (`file_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_DeleteFile` (`file_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
 	UPDATE tbl_FileStore
     SET fld_IsDeleted =1,
 		fld_DateDeleted= current_timestamp(),
@@ -242,8 +297,31 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeleteFile` (`file_id` BIGINT, `deleted
 	WHERE fld_FileId= file_id;
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_DeletePromotion`$$
+CREATE  PROCEDURE `usp_DeletePromotion` (IN `promotion_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+	DECLARE image_id BIGINT default 0;
+    SELECT fld_FileId INTO image_id
+    FROM tbl_Promotions
+    WHERE fld_PromotionId = promotion_id
+    AND fld_IsDeleted =0;
+    
+    IF image_id > 0
+		THEN
+        CALL usp_DeleteFile(
+			image_id,
+            deleted_by
+        );
+	END IF;
+    UPDATE tbl_Promotions
+    SET fld_IsDeleted=1
+		, fld_DateDeleted = current_timestamp()
+        , fld_DeletedBy = deleted_by
+	WHERE fld_PromotionId = promotion_id;
+    
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_DeleteTutorial`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeleteTutorial` (`video_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_DeleteTutorial` (`video_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
 UPDATE tbl_Tutorials
 SET fld_DeletedBy = deleted_by
 	, fld_DateDeleted =current_timestamp()
@@ -253,7 +331,7 @@ WHERE fld_TutorialId = video_id;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_DeletProduct`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeletProduct` (IN `service_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_DeletProduct` (IN `service_id` BIGINT, `deleted_by` VARCHAR(30))  BEGIN
 	DECLARE image_id BIGINT default 0;
     SELECT fld_ProductImageId INTO image_id
     FROM tbl_Service
@@ -276,7 +354,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_DeletProduct` (IN `service_id` BIGINT, 
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_ForgotPasswordChange`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_ForgotPasswordChange` (IN `email_address` VARCHAR(100), `reset_key` VARCHAR(100), `new_password` VARCHAR(150))  BEGIN
+CREATE  PROCEDURE `usp_ForgotPasswordChange` (IN `email_address` VARCHAR(100), `reset_key` VARCHAR(100), `new_password` VARCHAR(150))  BEGIN
 	DECLARE uid bigint default 0;
 	SELECT fld_ID INTO uid
 	FROM tbl_UserInformation	
@@ -300,7 +378,7 @@ end if;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetActiveResetKey`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetActiveResetKey` (`email_address` VARCHAR(100))  BEGIN
+CREATE  PROCEDURE `usp_GetActiveResetKey` (`email_address` VARCHAR(100))  BEGIN
 DECLARE uid bigint default 0;
 DECLARE username varchar(30) default null;
 SELECT fld_ID,fld_Username INTO uid,username
@@ -321,7 +399,7 @@ end if;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetAllReferenceCode`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAllReferenceCode` ()  BEGIN
+CREATE  PROCEDURE `usp_GetAllReferenceCode` ()  BEGIN
 	SELECT fld_ReferenceId 'reference_id',
 		   fld_ReferenceCode 'reference_code',
            fld_AppointmentId 'appointment_id',
@@ -333,7 +411,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAllReferenceCode` ()  BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetAppointmentByDate`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentByDate` (`lookup_date` DATETIME, `appoint_by` VARCHAR(30), `branch_code` VARCHAR(5))  BEGIN
+CREATE  PROCEDURE `usp_GetAppointmentByDate` (`lookup_date` DATETIME, `appoint_by` VARCHAR(30), `branch_code` VARCHAR(5))  BEGIN
 	SELECT  tbl_Appointment.fld_AppointmentId 'appointment_id',
 			tbl_AppointmentReference.fld_ReferenceCode 'reference_code',
 			tbl_Appointment.fld_PatientName 'patient_name',
@@ -358,7 +436,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentByDate` (`lookup_date` DA
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetAppointmentByRange`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentByRange` (`from_range` DATETIME, `to_range` DATETIME, `branch_code` VARCHAR(5), `appoint_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_GetAppointmentByRange` (`from_range` DATETIME, `to_range` DATETIME, `branch_code` VARCHAR(5), `appoint_by` VARCHAR(30))  BEGIN
 	SELECT A.fld_AppointmentId 'appointment_id',
 		   A.fld_PatientName 'patient_name',
            A.fld_PatientContactNumber 'patient_contact_no',
@@ -384,7 +462,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentByRange` (`from_range` DA
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetAppointmentInfo`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentInfo` (`appointment_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_GetAppointmentInfo` (`appointment_id` BIGINT)  BEGIN
 	SELECT fld_AppointmentId 'appointment_id',
 		   fld_PatientName 'patient_name' ,
 		   fld_PatientContactNumber 'patient_contact_no',
@@ -402,7 +480,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentInfo` (`appointment_id` B
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetAppointmentList`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentList` ()  BEGIN
+CREATE  PROCEDURE `usp_GetAppointmentList` ()  BEGIN
 	SELECT fld_AppointmentId 'appointment_id',
 		   fld_PatientName 'patient_name' ,
 		   fld_PatientContactNumber 'patient_contact_no',
@@ -418,7 +496,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentList` ()  BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetAppointmentListBy`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentListBy` (`username` VARCHAR(30), `branch_code` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_GetAppointmentListBy` (`username` VARCHAR(30), `branch_code` VARCHAR(30))  BEGIN
 		SELECT appointment.fld_AppointmentId 'appointment_id',
 		   appointment.fld_PatientName 'patient_name' ,
 		   appointment.fld_PatientContactNumber 'patient_contact_no',
@@ -446,7 +524,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetAppointmentListBy` (`username` VARCH
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetBranchList`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetBranchList` ()  BEGIN
+CREATE  PROCEDURE `usp_GetBranchList` ()  BEGIN
 SELECT 
 	fld_BranchId 'branch_id',
     fld_BranchCode 'branch_code',
@@ -460,7 +538,7 @@ WHERE fld_IsActive=true;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetClassification`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetClassification` ()  BEGIN
+CREATE  PROCEDURE `usp_GetClassification` ()  BEGIN
 	SELECT fld_ClassId 'class_id',
 			fld_ClassCode 'class_code',
             fld_ClassName 'class_name'
@@ -470,7 +548,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetClassification` ()  BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetFileData`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetFileData` (`file_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_GetFileData` (`file_id` BIGINT)  BEGIN
 	SELECT fld_FileId 'file_id',
 			fld_FileType 'file_type',
             fld_FileContentType 'file_content_type',
@@ -483,7 +561,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetFileData` (`file_id` BIGINT)  BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetInformationByUsername`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetInformationByUsername` (`username` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_GetInformationByUsername` (`username` VARCHAR(30))  BEGIN
 	DECLARE exist int default 0;
     SELECT COUNT(*) INTO exist
     FROM tbl_UserInformation
@@ -516,7 +594,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetInformationByUsername` (`username` V
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetLoginInformation`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetLoginInformation` (`username` VARCHAR(30), `password` VARCHAR(150))  BEGIN
+CREATE  PROCEDURE `usp_GetLoginInformation` (`username` VARCHAR(30), `password` VARCHAR(150))  BEGIN
 	SELECT fld_EmployeeNo AS employee_no,
 			fld_FirstName AS first_name,
             fld_MiddleName AS middle_name,
@@ -537,7 +615,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetLoginInformation` (`username` VARCHA
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetProductById`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductById` (`product_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_GetProductById` (`product_id` BIGINT)  BEGIN
 	SELECT service.fld_ServiceId 'service_id',
 			service.fld_ProductCode 'product_code',
             service.fld_ProductName 'product_name',
@@ -563,7 +641,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductById` (`product_id` BIGINT)  
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetProductByProductCode`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductByProductCode` (`product_code` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_GetProductByProductCode` (`product_code` VARCHAR(30))  BEGIN
 SELECT service.fld_ServiceId 'service_id',
 			service.fld_ProductCode 'product_code',
             service.fld_ProductName 'product_name',
@@ -589,7 +667,7 @@ SELECT service.fld_ServiceId 'service_id',
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetProductList`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductList` ()  BEGIN
+CREATE  PROCEDURE `usp_GetProductList` ()  BEGIN
 	SELECT service.fld_ServiceId 'service_id',
 			service.fld_ProductCode 'product_code',
             service.fld_ProductName 'product_name',
@@ -617,8 +695,73 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetProductList` ()  BEGIN
 
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_GetPromotionById`$$
+CREATE  PROCEDURE `usp_GetPromotionById` (`promotion_id` BIGINT)  BEGIN
+	SELECT  promo.fld_PromotionId 'promotion_id',
+			promo.fld_ImageId 'image_id',
+            promo.fld_Description 'description',
+            promo.fld_Status 'status',
+            promo.fld_FileId 'file_id',
+            promo.fld_PromotionName 'promotion_name',
+            filestore.fld_FileType 'file_type',
+            filestore.fld_FileName 'file_name',
+            filestore.fld_FileSize 'file_size',
+            filestore.fld_FileContentType 'file_content_type',
+            filestore.fld_FileContent 'file_content'
+    FROM tbl_Promotions as promo
+    LEFT JOIN tbl_FileStore as filestore
+    ON filestore.fld_FileId= promo.fld_FileId
+    WHERE promo.fld_IsDeleted=0
+    AND promo.fld_PromotionId= promotion_id
+    AND filestore.fld_IsDeleted=0;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetPromotionByImageId`$$
+CREATE  PROCEDURE `usp_GetPromotionByImageId` (`image_id` VARCHAR(60))  BEGIN
+SELECT  promo.fld_PromotionId 'promotion_id',
+			promo.fld_ImageId 'image_id',
+            promo.fld_Description 'description',
+            promo.fld_Status 'status',
+            promo.fld_FileId 'file_id',
+            promo.fld_PromotionName 'promotion_name',
+            filestore.fld_FileType 'file_type',
+            filestore.fld_FileName 'file_name',
+            filestore.fld_FileSize 'file_size',
+            filestore.fld_FileContentType 'file_content_type',
+            filestore.fld_FileContent 'file_content'
+    FROM tbl_Promotions as promo
+    LEFT JOIN tbl_FileStore as filestore
+    ON filestore.fld_FileId= promo.fld_FileId
+    WHERE promo.fld_IsDeleted= 0 
+    AND promo.fld_ImageId = image_id;
+END$$
+
+DROP PROCEDURE IF EXISTS `usp_GetPromotionList`$$
+CREATE  PROCEDURE `usp_GetPromotionList` ()  BEGIN
+	SELECT  promo.fld_PromotionId 'promotion_id',
+			promo.fld_ImageId 'image_id',
+            promo.fld_Description 'description',
+            promo.fld_PromotionName 'promotion_name',
+            promo.fld_Status 'status',
+            promo.fld_FileId 'file_id',
+            filestore.fld_FileType 'file_type',
+            filestore.fld_FileName 'file_name',
+            filestore.fld_FileSize 'file_size',
+            filestore.fld_FileContentType 'file_content_type',
+            filestore.fld_FileContent 'file_content'
+    FROM tbl_Promotions as promo
+    LEFT JOIN tbl_FileStore as filestore
+    ON filestore.fld_FileId= promo.fld_FileId
+    WHERE promo.fld_IsDeleted=0
+    AND filestore.fld_IsDeleted=0;
+    
+    
+    
+
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_GetReferenceCode`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetReferenceCode` (IN `appointment_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_GetReferenceCode` (IN `appointment_id` BIGINT)  BEGIN
 	SELECT fld_ReferenceId 'reference_id',
 		   fld_ReferenceCode 'reference_code',
 		   fld_AppointmentId 'appointment_id',
@@ -632,7 +775,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetReferenceCode` (IN `appointment_id` 
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetTutorialById`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialById` (`tutorial_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_GetTutorialById` (`tutorial_id` BIGINT)  BEGIN
 	SELECT fld_TutorialId 'tutorial_id',
 		fld_YoutubeId 'youtube_id',
         fld_YoutubeTitle 'youtube_title',
@@ -643,7 +786,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialById` (`tutorial_id` BIGINT)
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetTutorialByYoutubeId`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialByYoutubeId` (`youtube_id` VARCHAR(100))  BEGIN
+CREATE  PROCEDURE `usp_GetTutorialByYoutubeId` (`youtube_id` VARCHAR(100))  BEGIN
 	SELECT fld_TutorialId 'video_id',
 		    fld_YoutubeId 'youtube_id',
             fld_YoutubeTitle 'video_title',
@@ -656,7 +799,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialByYoutubeId` (`youtube_id` V
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetTutorialList`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialList` ()  BEGIN
+CREATE  PROCEDURE `usp_GetTutorialList` ()  BEGIN
 	SELECT fld_TutorialId 'video_id',
 		fld_YoutubeId 'youtube_id',
         fld_YoutubeTitle 'video_title',
@@ -667,7 +810,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetTutorialList` ()  BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_GetUserInformation`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_GetUserInformation` (`profile_id` INT, `affiliate_level` INT)  BEGIN
+CREATE  PROCEDURE `usp_GetUserInformation` (`profile_id` INT, `affiliate_level` INT)  BEGIN
 IF affiliate_level = 0
 	THEN
 		SELECT fld_EmployeeNo AS employee_no,
@@ -707,7 +850,7 @@ END IF;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_InsertAppointmentReference`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertAppointmentReference` (`reference_code` VARCHAR(30), `appointment_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_InsertAppointmentReference` (`reference_code` VARCHAR(30), `appointment_id` BIGINT)  BEGIN
 	INSERT INTO tbl_AppointmentReference
     (
 		fld_ReferenceCode,
@@ -729,7 +872,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertAppointmentReference` (`reference
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_InsertFile`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertFile` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), OUT `image_id` BIGINT)  BEGIN
+CREATE  PROCEDURE `usp_InsertFile` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), OUT `image_id` BIGINT)  BEGIN
 INSERT INTO tbl_FileStore
     (
 		fld_FileType,
@@ -756,7 +899,7 @@ INSERT INTO tbl_FileStore
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_InsertService`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertService` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), `product_code` VARCHAR(30), `product_name` VARCHAR(150), `class_id` INT, `product_description` VARCHAR(8000))  BEGIN
+CREATE  PROCEDURE `usp_InsertService` (`file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `created_by` VARCHAR(30), `product_code` VARCHAR(30), `product_name` VARCHAR(150), `class_id` INT, `product_description` VARCHAR(8000))  BEGIN
 	DECLARE exist int default 0;
     SELECT COUNT(*) INTO exist
     FROM tbl_Service
@@ -811,7 +954,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_InsertService` (`file_type` VARCHAR(10)
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_IsValidResetKey`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_IsValidResetKey` (`email_address` VARCHAR(100), `reset_key` VARCHAR(100))  BEGIN
+CREATE  PROCEDURE `usp_IsValidResetKey` (`email_address` VARCHAR(100), `reset_key` VARCHAR(100))  BEGIN
 
 DECLARE uid bigint default 0;
 DECLARE exist int default 0;
@@ -843,7 +986,7 @@ end if;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_ReferenceCodeIsUsed`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_ReferenceCodeIsUsed` (`reference_code` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_ReferenceCodeIsUsed` (`reference_code` VARCHAR(30))  BEGIN
 	
     DECLARE is_exist bit default 0;
     
@@ -867,7 +1010,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_ReferenceCodeIsUsed` (`reference_code` 
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_SavePasswordReset`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_SavePasswordReset` (`email_address` VARCHAR(100), `reset_key` VARCHAR(100), `should_expire` BIT)  BEGIN
+CREATE  PROCEDURE `usp_SavePasswordReset` (`email_address` VARCHAR(100), `reset_key` VARCHAR(100), `should_expire` BIT)  BEGIN
 declare uid bigint default 0;
 declare not_expired_key varchar(100) default null;
 declare username varchar(30) default null;
@@ -914,7 +1057,7 @@ end if;
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_submitFeedback`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_submitFeedback` (`full_name` VARCHAR(150), `contact_no` VARCHAR(15), `email_address` VARCHAR(200), `message` LONGTEXT)  BEGIN
+CREATE  PROCEDURE `usp_submitFeedback` (`full_name` VARCHAR(150), `contact_no` VARCHAR(15), `email_address` VARCHAR(200), `message` LONGTEXT)  BEGIN
 	INSERT INTO tbl_Feedback
     (	
 		fld_FullName,
@@ -937,7 +1080,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_submitFeedback` (`full_name` VARCHAR(15
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_UpdateAccount`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_no` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `is_activated` BIT, `new_employee_no` VARCHAR(20), `new_username` VARCHAR(20))  BEGIN
+CREATE  PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_no` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `is_activated` BIT, `new_employee_no` VARCHAR(20), `new_username` VARCHAR(20))  BEGIN
 	DECLARE exist int default 0;
 
     if employee_no is not NULL AND
@@ -989,7 +1132,7 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(2
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_UpdateAppointment`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateAppointment` (`reference_code` VARCHAR(30), `patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `modified_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_UpdateAppointment` (`reference_code` VARCHAR(30), `patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `modified_by` VARCHAR(30))  BEGIN
 DECLARE appointment_id BIGINT DEFAULT 0;
 DECLARE appointment_exist INT DEFAULT 0;
 DECLARE message VARCHAR(150) DEFAULT NULL;
@@ -1038,7 +1181,7 @@ IF appointment_id > 0
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_UpdateProduct`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateProduct` (`service_id` BIGINT, `upload_new_file` BIT, `file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `modified_by` VARCHAR(30), `product_code` VARCHAR(30), `product_name` VARCHAR(150), `class_id` INT, `product_description` VARCHAR(8000))  BEGIN
+CREATE  PROCEDURE `usp_UpdateProduct` (`service_id` BIGINT, `upload_new_file` BIT, `file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `modified_by` VARCHAR(30), `product_code` VARCHAR(30), `product_name` VARCHAR(150), `class_id` INT, `product_description` VARCHAR(8000))  BEGIN
 	DECLARE exist INT default 0;
     DECLARE image_id BIGINT default 0;
     SELECT COUNT(*) INTO exist
@@ -1088,8 +1231,59 @@ CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateProduct` (`service_id` BIGINT, `u
     
 END$$
 
+DROP PROCEDURE IF EXISTS `usp_UpdatePromotion`$$
+CREATE  PROCEDURE `usp_UpdatePromotion` (`promotion_id` BIGINT, `upload_new_file` BIT, `file_type` VARCHAR(10), `file_content_type` VARCHAR(60), `file_name` VARCHAR(100), `file_size` INT, `file_content` LONGBLOB, `modified_by` VARCHAR(30), `image_id` VARCHAR(30), `promotion_description` LONGTEXT, `promotion_status` VARCHAR(10), `promotion_name` VARCHAR(60))  BEGIN
+	DECLARE exist INT default 0;
+    DECLARE file_id BIGINT default 0;
+    SELECT COUNT(*) INTO exist
+    FROM tbl_Promotions
+    WHERE (fld_ImageId = image_id OR fld_PromotionName = promotion_name)
+    AND fld_IsDeleted = 0
+    AND fld_PromotionId !=promotion_id;
+    if exist = 0
+		THEN
+			If upload_new_file = 1
+				THEN
+					CALL usp_InsertFile(
+						file_type,
+						file_content_type,
+						file_name,
+						file_size,
+						file_content,
+						modified_by,
+						@image_id
+					);
+					SET file_id= @image_id;
+			ELSE
+				SELECT fld_FileId INTO file_id
+                FROM tbl_Promotions
+                WHERE fld_PromotionId = promotion_id;
+			END IF;
+			IF file_id > 0
+				THEN
+					UPDATE tbl_Promotions
+                    SET fld_ImageId = image_id
+						, fld_Description = promotion_description
+                        , fld_Status = promotion_status
+                        , fld_FileId = file_id
+                        , fld_PromotionName = promotion_name
+                        , fld_ModifiedBy = modified_by
+                        , fld_DateModified = current_timestamp()
+                        , fld_IsDeleted =0
+					WHERE fld_PromotionId = promotion_id;
+			ELSE
+				SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot upload image file';
+			END IF;
+            
+	ELSE
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Promotion already exist';
+		
+    END IF;
+    
+END$$
+
 DROP PROCEDURE IF EXISTS `usp_UpdateTutorial`$$
-CREATE DEFINER=`jmdc`@`%` PROCEDURE `usp_UpdateTutorial` (`video_id` BIGINT, `youtube_id` VARCHAR(50), `video_title` VARCHAR(150), `youtube_link` VARCHAR(100), `video_description` LONGTEXT, `modified_by` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_UpdateTutorial` (`video_id` BIGINT, `youtube_id` VARCHAR(50), `video_title` VARCHAR(150), `youtube_link` VARCHAR(100), `video_description` LONGTEXT, `modified_by` VARCHAR(30))  BEGIN
 DECLARE exist int default 0;
 SELECT COUNT(*) INTO exist
 FROM tbl_Tutorials
@@ -1120,7 +1314,7 @@ END$$
 -- Functions
 --
 DROP FUNCTION IF EXISTS `ufn_NotExpiredKey`$$
-CREATE DEFINER=`jmdc`@`%` FUNCTION `ufn_NotExpiredKey` (`uid` BIGINT) RETURNS VARCHAR(100) CHARSET utf8mb4 BEGIN
+CREATE  FUNCTION `ufn_NotExpiredKey` (`uid` BIGINT) RETURNS VARCHAR(100) CHARSET utf8mb4 BEGIN
 DECLARE reset_key varchar(100) default null;
 SELECT fld_ResetKey INTO reset_key
 FROM tbl_PasswordReset
@@ -1192,12 +1386,6 @@ CREATE TABLE `tbl_Appointment` (
 --
 
 TRUNCATE TABLE `tbl_Appointment`;
---
--- Dumping data for table `tbl_Appointment`
---
-
-
-
 -- --------------------------------------------------------
 
 --
@@ -1281,11 +1469,6 @@ CREATE TABLE `tbl_Feedback` (
 --
 
 TRUNCATE TABLE `tbl_Feedback`;
---
--- Dumping data for table `tbl_Feedback`
---
-
-
 -- --------------------------------------------------------
 
 --
@@ -1314,11 +1497,6 @@ CREATE TABLE `tbl_FileStore` (
 --
 
 TRUNCATE TABLE `tbl_FileStore`;
---
--- Dumping data for table `tbl_FileStore`
---
-
-
 -- --------------------------------------------------------
 
 --
@@ -1399,6 +1577,34 @@ INSERT INTO `tbl_Profile` (`fld_ProfileID`, `fld_ProfileName`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `tbl_Promotions`
+--
+
+DROP TABLE IF EXISTS `tbl_Promotions`;
+CREATE TABLE `tbl_Promotions` (
+  `fld_PromotionId` bigint(20) NOT NULL,
+  `fld_ImageId` varchar(30) DEFAULT NULL,
+  `fld_PromotionName` varchar(60) DEFAULT NULL,
+  `fld_Description` longtext DEFAULT NULL,
+  `fld_Status` varchar(10) DEFAULT NULL,
+  `fld_FileId` bigint(20) DEFAULT NULL,
+  `fld_CreatedBy` varchar(30) DEFAULT NULL,
+  `fld_DateCreated` datetime DEFAULT NULL,
+  `fld_ModifiedBy` varchar(30) DEFAULT NULL,
+  `fld_DateModified` datetime DEFAULT NULL,
+  `fld_DeletedBy` varchar(30) DEFAULT NULL,
+  `fld_DateDeleted` datetime DEFAULT NULL,
+  `fld_IsDeleted` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Truncate table before insert `tbl_Promotions`
+--
+
+TRUNCATE TABLE `tbl_Promotions`;
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tbl_Service`
 --
 
@@ -1424,10 +1630,6 @@ CREATE TABLE `tbl_Service` (
 --
 
 TRUNCATE TABLE `tbl_Service`;
---
--- Dumping data for table `tbl_Service`
---
-
 -- --------------------------------------------------------
 
 --
@@ -1455,10 +1657,6 @@ CREATE TABLE `tbl_Tutorials` (
 --
 
 TRUNCATE TABLE `tbl_Tutorials`;
---
--- Dumping data for table `tbl_Tutorials`
---
-
 -- --------------------------------------------------------
 
 --
@@ -1496,6 +1694,8 @@ TRUNCATE TABLE `tbl_UserInformation`;
 -- Dumping data for table `tbl_UserInformation`
 --
 
+INSERT INTO `tbl_UserInformation` (`fld_ID`, `fld_EmployeeNo`, `fld_FirstName`, `fld_MiddleName`, `fld_LastName`, `fld_Suffix`, `fld_ContactNumber`, `fld_EmailAddress`, `fld_ProfileID`, `fld_AffiliateLevelID`, `fld_Username`, `fld_Password`, `fld_IsActivated`, `fld_IsTemporaryPassword`, `fld_DateRegistered`, `fld_DateUpdated`, `fld_DateDeleted`, `fld_IsDeleted`) VALUES
+(1, '10101', 'Admin', NULL, 'Admin', NULL, '09123456789', 'webmaster@email.com', 1, 1, 'admin', 'cc83897986bf5b2d48c9622ddb0e62c5', b'1', b'0', '2021-06-10 00:00:00', '2021-07-25 00:00:00', NULL, b'0'),
 
 --
 -- Indexes for dumped tables
@@ -1556,6 +1756,12 @@ ALTER TABLE `tbl_Profile`
   ADD PRIMARY KEY (`fld_ProfileID`);
 
 --
+-- Indexes for table `tbl_Promotions`
+--
+ALTER TABLE `tbl_Promotions`
+  ADD PRIMARY KEY (`fld_PromotionId`);
+
+--
 -- Indexes for table `tbl_Service`
 --
 ALTER TABLE `tbl_Service`
@@ -1587,7 +1793,7 @@ ALTER TABLE `tbl_AffiliateLevel`
 -- AUTO_INCREMENT for table `tbl_Appointment`
 --
 ALTER TABLE `tbl_Appointment`
-  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `fld_AppointmentId` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbl_AppointmentReference`
@@ -1605,13 +1811,13 @@ ALTER TABLE `tbl_Branch`
 -- AUTO_INCREMENT for table `tbl_Feedback`
 --
 ALTER TABLE `tbl_Feedback`
-  MODIFY `fld_FeedbackId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `fld_FeedbackId` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbl_FileStore`
 --
 ALTER TABLE `tbl_FileStore`
-  MODIFY `fld_FileId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `fld_FileId` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbl_PasswordReset`
@@ -1632,16 +1838,22 @@ ALTER TABLE `tbl_Profile`
   MODIFY `fld_ProfileID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `tbl_Promotions`
+--
+ALTER TABLE `tbl_Promotions`
+  MODIFY `fld_PromotionId` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `tbl_Service`
 --
 ALTER TABLE `tbl_Service`
-  MODIFY `fld_ServiceId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `fld_ServiceId` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbl_Tutorials`
 --
 ALTER TABLE `tbl_Tutorials`
-  MODIFY `fld_TutorialId` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `fld_TutorialId` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbl_UserInformation`

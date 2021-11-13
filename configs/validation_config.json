@@ -299,6 +299,23 @@
             }
         }
     },
+    "promotion_name": {
+        "type": "string",
+        "config": {
+            "min":{
+                "val":  3,
+                "error": "Promotion name too short"
+            },
+            "max": {
+                "val": 60,
+                "error": "Promotion name too long"
+            },
+            "regex": {
+                "val": "^[- ,.a-zA-Z0-9]+$",
+                "error": "Invalid character found from the promotion name"
+            }
+        }
+    },
     "product_description": {
         "type": "string",
         "config": {
@@ -313,6 +330,23 @@
             "regex": {
                 "val": "^[- ,.()a-zA-Z0-9]+$",
                 "error": "Invalid characters found from the product description"
+            }
+        }
+    },
+    "promotion_description": {
+        "type": "string",
+        "config": {
+            "min": {
+                "val": 5,
+                "error": "Promotion description too short"
+            },
+            "max": {
+                "val": 250,
+                "error": "Promotion description too long"
+            },
+            "regex": {
+                "val": "^[- ,.()a-zA-Z0-9]+$",
+                "error": "Invalid characters found from the promotion description"
             }
         }
     },

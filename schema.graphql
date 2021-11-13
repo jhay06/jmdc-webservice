@@ -78,6 +78,19 @@ type Product{
 	file_content:String
 }
 
+type Promotion{
+	promotion_id:Int
+	promotion_name:String
+	image_id:String
+	description:String
+	status:String
+	file_id:Int
+	file_type:String
+	file_name:String
+	file_size:Int
+	file_content_type:String
+	file_content:String
+}
 """end of types"""
 
 
@@ -248,6 +261,13 @@ input AddServiceInput{
 	created_by:String!
 
 }
+input AddPromotionInput{
+	promotion_name:String!
+	description:String!
+	status:String!
+	image_file:FileInput!
+	created_by:String!
+}
 input UpdateServiceInput{
 	service_id:Int!
 	upload_new_file:Boolean!
@@ -259,8 +279,22 @@ input UpdateServiceInput{
 	modified_by:String!
 
 }
+input UpdatePromotionInput{
+	promotion_id:Int!
+	promotion_name:String!
+	image_id:String!
+	upload_new_file:Boolean!
+	description:String!
+	status:String!
+	image_file:FileInput!
+	modified_by:String!
+}
 input DeleteServiceInput{
 	service_id:Int!
+	deleted_by:String!
+}
+input DeletePromotionInput{
+	promotion_id:Int!
 	deleted_by:String!
 }
 input GetProductByIdInput{
@@ -268,6 +302,12 @@ input GetProductByIdInput{
 }
 input GetProductByProductCodeInput{
 	product_code:String!
+}
+input GetPromotionByIdInput{
+	promotion_id:Int!
+}
+input GetPromotionByImageIdInput{
+	image_id:String!
 }
 
 input AddTutorialInput{
@@ -462,6 +502,17 @@ type GetTutorialInfoResponse{
 	message:String
 	data:Tutorial
 }
+type GetPromotionListResponse{
+	type:String!
+	message:String
+	data:[Promotion]
+}
+type GetPromotionByIdResponse{
+	type:String!
+	message:String
+	data:Promotion
+}
+
 """end of response"""
 
 
@@ -482,6 +533,9 @@ type Query{
 	get_product_by_product_code(input:GetProductByProductCodeInput!):GetProductInfoResponse
 	get_tutorial_list(pagination:PaginationInput):GetTutorialListResponse
 	get_tutorial_info(input:GetTutorialInfoInput!):GetTutorialInfoResponse
+	get_promotion_list:GetPromotionListResponse
+	get_promotion_by_id(input:GetPromotionByIdInput!):GetPromotionByIdResponse
+	get_promotion_by_image_id(input:GetPromotionByImageIdInput!):GetPromotionByIdResponse
 }
 type Mutation{
 	change_password_via_forgot(input:ChangePasswordViaForgotInput!):BaseResponse
@@ -502,4 +556,8 @@ type Mutation{
 	update_tutorial(input:UpdateTutorialInput!):BaseResponse
 	delete_tutorial(input:DeleteTutorialInput!):BaseResponse
 	submit_feedback(input:SubmitFeedbackInput!):BaseResponse
+	add_promotion(input:AddPromotionInput!):BaseResponse
+	update_promotion(input:UpdatePromotionInput!):BaseResponse
+	delete_promotion(input:DeletePromotionInput!):BaseResponse
+
 }

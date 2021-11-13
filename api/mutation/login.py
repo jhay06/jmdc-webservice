@@ -42,7 +42,7 @@ class Login:
                 pass_string = input['username'] + ';' + input['password']
 
                 password_md5 = hashlib.md5(pass_string.encode('utf-8')).hexdigest()
-
+             
                 cursor.callproc('usp_GetLoginInformation', args=(input['username'], password_md5))
 
                 login_info: LoginInformation = None
