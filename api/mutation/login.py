@@ -52,12 +52,25 @@ class Login:
                         has_info = True
                         login_info = LoginInformation(**data.to_json())
                         break
-                login_response = LoginResponse()
-                base_response = BaseResponse(
-                    type="success",
-                    message="login successful",
-                    data=login_response
-                )
+
+                if login_info is not None:
+                    if login_info.is_active == False:
+                        base_response = BaseResponse(
+                            type='failed',
+                            message='Account already deactivated'
+                        )
+                    else:
+                        login_response = LoginResponse()
+                        base_response = BaseResponse(
+                            type="success",
+                            message="login successful",
+                            data=login_response
+                    )
+                else:
+                    base_response= BaseResponse(
+                        type='failed',
+                        message='Account unavailable'
+                    )
             except mysql.connector.Error as err:
                 login_response = LoginResponse()
                 base_response = BaseResponse(

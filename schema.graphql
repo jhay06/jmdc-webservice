@@ -21,8 +21,10 @@ type UserInformation{
     profile_id:Int
     affiliate_level_id:Int
     date_registered:String
+	is_active:Boolean
 	is_activated:Boolean
 	is_temporary_password:Boolean
+
 
 }
 
@@ -152,7 +154,8 @@ input RegistrationInput{
 	affiliate_level:Int
 	contact_number:String
 	email_address:String,
-	password:String
+	password:String,
+	is_active:Boolean!
 }
 
 
@@ -171,7 +174,7 @@ input UpdateAccountInput{
 	new_employee_no:String
 	is_activated:Boolean
 	date_registered:String
-
+	is_active:Boolean!
 }
 
 input PatientAppointmentInput{

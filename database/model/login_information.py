@@ -16,6 +16,7 @@ class LoginInformation:
                  username=None,
                  is_activated=False,
                  is_temporary_password=False,
+                 is_active = False,
                  *args, **kwargs
 
                  ):
@@ -33,3 +34,4 @@ class LoginInformation:
         self.is_activated = is_activated
         self.is_temporary_password = is_temporary_password
         self.date_login = datetime.now()
+        self.is_active = is_active

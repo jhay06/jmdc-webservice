@@ -27,6 +27,7 @@ class Register:
         suffix = None
         middle_name = None
         employee_no = None
+        is_active = input['is_active']
 
         if "suffix" in input.keys():
             if input['suffix'] is not None:
@@ -94,7 +95,8 @@ class Register:
                     profile_id,
                     affiliate_level,
                     input['username'],
-                    password_md5
+                    password_md5,
+                    is_active
 
                 ))
                 con.get_connection().commit()

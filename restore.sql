@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Nov 13, 2021 at 08:06 AM
+-- Generation Time: Nov 27, 2021 at 11:02 AM
 -- Server version: 10.5.11-MariaDB-1:10.5.11+maria~focal
 -- PHP Version: 8.0.12
 
@@ -20,16 +20,15 @@ SET time_zone = "+00:00";
 --
 -- Database: `db_JDMC`
 --
-DROP DATABASE IF EXISTS `db_JDMC`;
-CREATE DATABASE IF NOT EXISTS `db_JDMC` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `db_JDMC`;
+CREATE DATABASE IF NOT EXISTS `db_JMDC` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `db_JMDC`;
 
 DELIMITER $$
 --
 -- Procedures
 --
 DROP PROCEDURE IF EXISTS `usp_AddAccount`$$
-CREATE PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_number` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `your_password` VARCHAR(150))  BEGIN
+CREATE  PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_number` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `your_password` VARCHAR(150), `is_active` BIT)  BEGIN
 	
 	DECLARE exist int default 0;
     IF employee_no is not NULL OR employee_no !='None'
@@ -65,7 +64,8 @@ CREATE PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCH
 				fld_DateRegistered,
 				fld_IsDeleted,
                 fld_IsActivated,
-                fld_IstemporaryPassword
+                fld_IstemporaryPassword,
+                fld_IsActive
 			)
 			VALUES
 			(
@@ -83,7 +83,8 @@ CREATE PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCH
 				current_timestamp(),
 				false,
                 false,
-                true
+                true,
+                is_active
     
 			);
 		
@@ -93,7 +94,7 @@ CREATE PROCEDURE `usp_AddAccount` (`employee_no` VARCHAR(20), `first_name` VARCH
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_AddAppointment`$$
-CREATE PROCEDURE `usp_AddAppointment` (`patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `appointby` VARCHAR(30), `reference_code` VARCHAR(30))  BEGIN
+CREATE  PROCEDURE `usp_AddAppointment` (`patient_name` VARCHAR(150), `patient_contact_no` VARCHAR(15), `email_address` VARCHAR(60), `branch_code` VARCHAR(5), `branch_name` VARCHAR(60), `appointment_date` DATETIME, `start_timeslot` INT, `end_timeslot` INT, `appointby` VARCHAR(30), `reference_code` VARCHAR(30))  BEGIN
 DECLARE exist int default 0;
 DECLARE insert_id bigint default 0;
 SELECT COUNT(*) INTO exist
@@ -583,7 +584,8 @@ CREATE  PROCEDURE `usp_GetInformationByUsername` (`username` VARCHAR(30))  BEGIN
                fld_ProfileID as profile_id,
                fld_IsActivated as is_activated,
                fld_DateRegistered as date_registered,
-               fld_IsTemporaryPassword as is_temporary_password
+               fld_IsTemporaryPassword as is_temporary_password,
+               fld_IsActive as is_active
 			FROM tbl_UserInformation
 			WHERE fld_Username=username
 			AND fld_IsDeleted = false;
@@ -607,7 +609,8 @@ CREATE  PROCEDURE `usp_GetLoginInformation` (`username` VARCHAR(30), `password` 
             fld_DateRegistered AS date_registered,
             fld_IsActivated AS is_activated,
             fld_IsTemporaryPassword AS is_temporary_password,
-            fld_Username AS 'username'
+            fld_Username AS 'username',
+            fld_IsActive AS is_active
     FROM tbl_UserInformation
     WHERE fld_Username=username AND fld_Password = password
     AND fld_IsDeleted=false
@@ -823,7 +826,8 @@ IF affiliate_level = 0
                fld_AffiliateLevelID as affiliate_level_id,
                fld_Username as username,
                fld_DateRegistered as date_registered,
-               fld_ProfileID as 'profile_id'
+               fld_ProfileID as 'profile_id',
+               fld_IsActive as is_active
         FROM tbl_UserInformation
         WHERE fld_ProfileID = profile_id
         AND fld_IsDeleted = false
@@ -1080,7 +1084,7 @@ CREATE  PROCEDURE `usp_submitFeedback` (`full_name` VARCHAR(150), `contact_no` V
 END$$
 
 DROP PROCEDURE IF EXISTS `usp_UpdateAccount`$$
-CREATE  PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_no` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `is_activated` BIT, `new_employee_no` VARCHAR(20), `new_username` VARCHAR(20))  BEGIN
+CREATE  PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(20), `first_name` VARCHAR(50), `middle_name` VARCHAR(50), `last_name` VARCHAR(50), `suffix` VARCHAR(10), `contact_no` VARCHAR(15), `email_address` VARCHAR(100), `profile_id` INT, `affiliate_level_id` INT, `username` VARCHAR(30), `is_activated` BIT, `new_employee_no` VARCHAR(20), `new_username` VARCHAR(20), `is_active` BIT)  BEGIN
 	DECLARE exist int default 0;
 
     if employee_no is not NULL AND
@@ -1124,7 +1128,8 @@ CREATE  PROCEDURE `usp_UpdateAccount` (`employee_no` VARCHAR(20), `first_name` V
                 fld_EmployeeNo=new_employee_no,
                 fld_Username=new_username,
                 fld_IsActivated= is_activated,
-                fld_DateUpdated= current_timestamp()
+                fld_DateUpdated= current_timestamp(),
+                fld_IsActive = is_active
 			WHERE fld_Username=username;
 	ELSE
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Username/employee number was already taken, Please chooose anohter username or employee number';	
@@ -1412,6 +1417,12 @@ TRUNCATE TABLE `tbl_AppointmentReference`;
 -- Dumping data for table `tbl_AppointmentReference`
 --
 
+INSERT INTO `tbl_AppointmentReference` (`fld_ReferenceId`, `fld_ReferenceCode`, `fld_AppointmentId`, `fld_DateCreated`, `fld_DateUsed`, `fld_IsUsed`, `fld_IsDeleted`) VALUES
+(1, 'AP2021-09-0001', 1, '2021-09-12 08:11:15', NULL, b'0', b'0'),
+(2, 'AP2021-09-0002', 2, '2021-09-12 14:02:46', NULL, b'0', b'0'),
+(3, 'AP2021-09-0003', 3, '2021-09-12 14:35:52', NULL, b'0', b'0'),
+(4, 'AP2021-09-0004', 4, '2021-09-12 14:40:10', NULL, b'0', b'0'),
+(5, 'AP2021-10-0001', 5, '2021-10-23 13:19:10', NULL, b'0', b'0');
 
 -- --------------------------------------------------------
 
@@ -1679,6 +1690,7 @@ CREATE TABLE `tbl_UserInformation` (
   `fld_Password` varchar(150) DEFAULT NULL,
   `fld_IsActivated` bit(1) DEFAULT NULL,
   `fld_IsTemporaryPassword` bit(1) DEFAULT NULL,
+  `fld_IsActive` bit(1) DEFAULT NULL,
   `fld_DateRegistered` datetime DEFAULT NULL,
   `fld_DateUpdated` datetime DEFAULT NULL,
   `fld_DateDeleted` datetime DEFAULT NULL,
@@ -1694,9 +1706,8 @@ TRUNCATE TABLE `tbl_UserInformation`;
 -- Dumping data for table `tbl_UserInformation`
 --
 
-INSERT INTO `tbl_UserInformation` (`fld_ID`, `fld_EmployeeNo`, `fld_FirstName`, `fld_MiddleName`, `fld_LastName`, `fld_Suffix`, `fld_ContactNumber`, `fld_EmailAddress`, `fld_ProfileID`, `fld_AffiliateLevelID`, `fld_Username`, `fld_Password`, `fld_IsActivated`, `fld_IsTemporaryPassword`, `fld_DateRegistered`, `fld_DateUpdated`, `fld_DateDeleted`, `fld_IsDeleted`) VALUES
-(1, '10101', 'Admin', NULL, 'Admin', NULL, '09123456789', 'webmaster@email.com', 1, 1, 'admin', 'cc83897986bf5b2d48c9622ddb0e62c5', b'1', b'0', '2021-06-10 00:00:00', '2021-07-25 00:00:00', NULL, b'0');
-
+INSERT INTO `tbl_UserInformation` (`fld_ID`, `fld_EmployeeNo`, `fld_FirstName`, `fld_MiddleName`, `fld_LastName`, `fld_Suffix`, `fld_ContactNumber`, `fld_EmailAddress`, `fld_ProfileID`, `fld_AffiliateLevelID`, `fld_Username`, `fld_Password`, `fld_IsActivated`, `fld_IsTemporaryPassword`, `fld_IsActive`, `fld_DateRegistered`, `fld_DateUpdated`, `fld_DateDeleted`, `fld_IsDeleted`) VALUES
+(1, '10101', 'Admin', NULL, 'Admin', NULL, '09123456789', 'webmaster@email.com', 1, 1, 'admin', 'cc83897986bf5b2d48c9622ddb0e62c5', b'1', b'0', b'1', '2021-06-10 00:00:00', '2021-07-25 00:00:00', NULL, b'0');
 --
 -- Indexes for dumped tables
 --
@@ -1859,7 +1870,7 @@ ALTER TABLE `tbl_Tutorials`
 -- AUTO_INCREMENT for table `tbl_UserInformation`
 --
 ALTER TABLE `tbl_UserInformation`
-  MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `fld_ID` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

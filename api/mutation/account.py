@@ -217,6 +217,7 @@ class Account:
 
             if input['new_employee_no'] is not None:
                 new_employee_no = input['new_employee_no']
+        is_active = input['is_active']
 
         for x in input.keys():
             base = BaseValidation()
@@ -244,7 +245,8 @@ class Account:
                 input['username'],
                 input['is_activated'],
                 new_employee_no,
-                input['new_username']
+                input['new_username'],
+                is_active
 
             ]
             cursor.callproc("usp_UpdateAccount", input_data)
